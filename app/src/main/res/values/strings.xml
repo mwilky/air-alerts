@@ -13,10 +13,17 @@
     <string name="band_test_btn">Test buzz</string>
     <string name="band_test_running">Buzzing&#8230;</string>
     <string name="band_blocked_hint">Something is stopping buzzes. Fix it on the Home tab.</string>
+    <string name="test_card_title">Try a buzz</string>
+    <string name="test_card_desc">Sends one buzz to your Fitbit Air to check it\'s working. Each step is listed below with how long it took.</string>
+    <string name="test_status_never">Not tried yet</string>
+    <string name="test_status_worked">Working</string>
+    <string name="test_status_failed">Last try failed</string>
+    <string name="test_status_busy">Buzzing&#8230;</string>
+    <string name="test_status_blocked">Can\'t buzz</string>
     <string name="home_band_never_buzzed">No buzz yet. Try a Test buzz on the Buzzes tab.</string>
 
-    <!-- Last test (steps) -->
-    <string name="steps_header">Last test</string>
+    <!-- Last buzz (steps) -->
+    <string name="steps_header">Last buzz</string>
     <string name="step_found">Connected to your Fitbit Air</string>
     <string name="step_link">Your Fitbit Air answered</string>
     <string name="step_secure">Secure connection set up</string>
@@ -24,7 +31,7 @@
     <string name="step_handback">Connection given back to Google Health</string>
     <string name="step_seconds">%1$s s</string>
     <string name="step_waiting">Not reached</string>
-    <string name="steps_empty">No test yet. Each step of a test buzz is listed here with how long it took.</string>
+    <string name="steps_empty">No buzz yet. Each step of the last buzz is listed here with how long it took, whether it was a test, a call or a notification.</string>
 
     <!-- Errors -->
     <string name="error_bluetooth_off">Bluetooth is off.</string>

@@ -6,6 +6,10 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.mwilky.airalerts.band.BuzzError
+import com.mwilky.airalerts.band.BuzzFailure
+import com.mwilky.airalerts.band.BuzzRun
+import com.mwilky.airalerts.band.BuzzStep
+import com.mwilky.airalerts.band.StepState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -34,7 +38,7 @@ data class ActivityEntry(
 
 private val Context.dataStore by preferencesDataStore("alerts")
 
-/** Settings and the recent activity list, kept across restarts. */
+/** Settings, the recent activity list and the steps of the last buzz, kept across restarts. */
 class AlertStore(private val context: Context) {
     val settings: Flow<AlertSettings> = context.dataStore.data.map { p ->
         AlertSettings(
@@ -46,6 +50,8 @@ class AlertStore(private val context: Context) {
 
     val activity: Flow<List<ActivityEntry>> = context.dataStore.data.map { p -> decode(p[ACTIVITY]) }
 
+    val lastRun: Flow<BuzzRun?> = context.dataStore.data.map { p -> decodeRun(p[LAST_RUN]) }
+
     suspend fun currentSettings() = settings.first()
 
     suspend fun setEnabled(value: Boolean) = context.dataStore.edit { it[ENABLED] = value }
@@ -54,6 +60,54 @@ class AlertStore(private val context: Context) {
 
     suspend fun addActivity(entry: ActivityEntry) = context.dataStore.edit { p ->
         p[ACTIVITY] = encode((listOf(entry) + decode(p[ACTIVITY])).take(MAX_ACTIVITY))
+    }
+
+    suspend fun setLastRun(run: BuzzRun) = context.dataStore.edit { it[LAST_RUN] = encodeRun(run) }
+
+    private fun encodeRun(run: BuzzRun): String = JSONObject().apply {
+        put("at", run.startedAtMillis)
+        put("steps", JSONObject().apply {
+            run.steps.forEach { (step, state) ->
+                put(step.name, JSONObject().apply {
+                    when (state) {
+                        StepState.Waiting, StepState.Running -> put("state", "waiting")
+                        is StepState.Done -> {
+                            put("state", "done")
+                            put("ms", state.millis)
+                        }
+                        is StepState.Failed -> {
+                            put("state", "failed")
+                            put("error", state.failure.error.name)
+                            state.failure.detail?.let { put("detail", it) }
+                        }
+                    }
+                })
+            }
+        })
+    }.toString()
+
+    private fun decodeRun(json: String?): BuzzRun? {
+        if (json.isNullOrEmpty()) return null
+        return runCatching {
+            val o = JSONObject(json)
+            val steps = o.getJSONObject("steps")
+            BuzzRun(
+                startedAtMillis = o.getLong("at"),
+                steps = BuzzStep.entries.associateWith { step ->
+                    val s = steps.optJSONObject(step.name)
+                    when (s?.optString("state")) {
+                        "done" -> StepState.Done(s.getLong("ms"))
+                        "failed" -> StepState.Failed(
+                            BuzzFailure(
+                                error = BuzzError.entries.firstOrNull { it.name == s.optString("error") } ?: BuzzError.UNEXPECTED,
+                                detail = s.optString("detail").ifEmpty { null }
+                            )
+                        )
+                        else -> StepState.Waiting
+                    }
+                }
+            )
+        }.getOrNull()
     }
 
     private fun encode(entries: List<ActivityEntry>): String = JSONArray().apply {
@@ -94,6 +148,7 @@ class AlertStore(private val context: Context) {
         val CALLS = booleanPreferencesKey("calls")
         val NOTIFICATIONS = booleanPreferencesKey("notifications")
         val ACTIVITY = stringPreferencesKey("activity")
+        val LAST_RUN = stringPreferencesKey("last_run")
         const val MAX_ACTIVITY = 30
     }
 }

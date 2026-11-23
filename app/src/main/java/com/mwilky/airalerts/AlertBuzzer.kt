@@ -22,6 +22,7 @@ class AlertBuzzer(scope: CoroutineScope, private val band: AirBand, private val 
                 while (true) batch += requests.tryReceive().getOrNull() ?: break
                 val startedAt = System.currentTimeMillis()
                 val result = band.buzz()
+                band.lastRun.value?.let { store.setLastRun(it) }
                 batch.forEach { trigger ->
                     store.addActivity(
                         when (result) {

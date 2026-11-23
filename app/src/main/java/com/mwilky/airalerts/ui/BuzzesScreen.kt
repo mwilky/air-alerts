@@ -13,7 +13,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -29,7 +28,7 @@ import com.mwilky.airalerts.band.StepState
 import java.util.Date
 import java.util.Locale
 
-/** The second page: the band and its Test buzz, the steps of the last attempt, and recent activity. */
+/** The second page: Test buzz, the steps of the last buzz, and recent activity. */
 @Composable
 fun BuzzesScreen(viewModel: HomeViewModel = viewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -43,9 +42,10 @@ fun BuzzesScreen(viewModel: HomeViewModel = viewModel()) {
 @Composable
 fun BuzzesContent(state: HomeUiState, environment: Environment, onTestBuzz: () -> Unit) {
     PageScaffold(title = stringResource(R.string.nav_activity)) {
+        TestBuzzCard(busy = state.busy, ready = environment.canBuzz, lastRun = state.lastRun, onTestBuzz = onTestBuzz)
+
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             RuleGroupHeader(stringResource(R.string.steps_header))
-            TestBuzzButton(busy = state.busy, ready = environment.canBuzz, onTestBuzz = onTestBuzz)
             StepList(state.lastRun)
         }
 
@@ -56,10 +56,26 @@ fun BuzzesContent(state: HomeUiState, environment: Environment, onTestBuzz: () -
     }
 }
 
-/** Test buzz, and why it's off when something on Home is stopping buzzes. */
+/** Test buzz in a card, with how the last buzz went, or why it's off when something on Home is stopping buzzes. */
 @Composable
-private fun TestBuzzButton(busy: Boolean, ready: Boolean, onTestBuzz: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+private fun TestBuzzCard(busy: Boolean, ready: Boolean, lastRun: BuzzRun?, onTestBuzz: () -> Unit) {
+    ExpressiveStatusCard(
+        title = stringResource(R.string.test_card_title),
+        subtitle = stringResource(if (ready) R.string.test_card_desc else R.string.band_blocked_hint),
+        icon = Icons.Rounded.Vibration,
+        statusText = stringResource(
+            when {
+                busy -> R.string.test_status_busy
+                !ready -> R.string.test_status_blocked
+                lastRun == null -> R.string.test_status_never
+                lastRun.steps[BuzzStep.BUZZ] is StepState.Done -> R.string.test_status_worked
+                else -> R.string.test_status_failed
+            }
+        ),
+        accentColor = if (ready) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        contentColor = MaterialTheme.colorScheme.onSurface
+    ) {
         Button(
             onClick = onTestBuzz,
             enabled = ready && !busy,
@@ -73,17 +89,6 @@ private fun TestBuzzButton(busy: Boolean, ready: Boolean, onTestBuzz: () -> Unit
             } else {
                 ButtonLabel(Icons.Rounded.Vibration, stringResource(R.string.band_test_btn))
             }
-        }
-        if (!ready) {
-            Text(
-                text = stringResource(R.string.band_blocked_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            )
         }
     }
 }

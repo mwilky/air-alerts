@@ -29,9 +29,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         app.store.settings,
         app.band.busy,
         app.band.lastRun,
+        app.store.lastRun,
         app.store.activity
-    ) { settings, busy, lastRun, activity ->
-        HomeUiState(settings, busy, lastRun, activity)
+    ) { settings, busy, liveRun, savedRun, activity ->
+        // The live run until the app restarts, then the one saved when it finished.
+        HomeUiState(settings, busy, liveRun ?: savedRun, activity)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 
     fun testBuzz() = app.buzzer.request(AlertBuzzer.Trigger(AlertKind.TEST))
