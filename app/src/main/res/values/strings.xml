@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App -->
+    <string name="app_name">Air Alerts</string>
+
+    <!-- Band card -->
+    <string name="band_title">Google Fitbit Air</string>
+    <string name="band_status_ready">Ready</string>
+    <string name="band_status_busy">Buzzing</string>
+    <string name="band_status_missing">Not paired</string>
+    <string name="band_last_buzz">Last buzz at %1$s. It took %2$s s.</string>
+    <string name="band_last_failed">Last try at %1$s failed. %2$s</string>
+    <string name="band_never_buzzed">No buzz yet. Tap Test buzz to try one.</string>
+    <string name="band_test_btn">Test buzz</string>
+    <string name="band_test_running">Buzzing&#8230;</string>
+
+    <!-- Last test (steps) -->
+    <string name="steps_header">Last test</string>
+    <string name="step_found">Connected to your Fitbit Air</string>
+    <string name="step_link">Your Fitbit Air answered</string>
+    <string name="step_secure">Secure connection set up</string>
+    <string name="step_buzz">Buzz sent and confirmed</string>
+    <string name="step_handback">Connection given back to Google Health</string>
+    <string name="step_seconds">%1$s s</string>
+    <string name="step_waiting">Not reached</string>
+    <string name="steps_empty">No test yet. Each step of a test buzz is listed here with how long it took.</string>
+
+    <!-- Errors -->
+    <string name="error_bluetooth_off">Bluetooth is off.</string>
+    <string name="error_no_permission">Air Alerts isn\'t allowed to use Nearby devices.</string>
+    <string name="error_not_paired">No Fitbit Air is paired with this phone.</string>
+    <string name="error_out_of_reach">Your Fitbit Air couldn\'t be reached. It may be out of range or switched off.</string>
+    <string name="error_no_answer">Your Fitbit Air connected but didn\'t answer.</string>
+    <string name="error_secure">Your Fitbit Air didn\'t accept the secure connection. Google Health may have been using it at that moment. Trying again usually works.</string>
+    <string name="error_rejected">Your Fitbit Air refused the buzz.</string>
+    <string name="error_unexpected">Something unexpected went wrong (%1$s).</string>
+
+    <!-- Alerts switch and rows -->
+    <string name="hero_title">Buzz for alerts</string>
+    <string name="hero_status_on">On: %1$s</string>
+    <string name="hero_what_both">Calls and notifications</string>
+    <string name="hero_what_calls">Calls only</string>
+    <string name="hero_what_notifications">Notifications only</string>
+    <string name="hero_what_nothing">Calls and Notifications are both off</string>
+    <string name="hero_status_off">Off</string>
+    <string name="section_off_hint">Nothing will buzz your Fitbit Air while this is off.</string>
+    <string name="alerts_header">Alerts</string>
+    <string name="calls_title">Calls</string>
+    <string name="calls_desc">One buzz when a call starts ringing, including calls in apps like WhatsApp.</string>
+    <string name="notifications_title">Notifications</string>
+    <string name="notifications_desc">One buzz for each notification that makes a sound or vibrates the phone. Silent ones don\'t buzz.</string>
+
+    <!-- Activity -->
+    <string name="activity_header">Activity</string>
+    <string name="activity_empty">No buzzes yet. Buzzes and misses are listed here.</string>
+    <string name="activity_test">Test buzz</string>
+    <string name="activity_call">%1$s call</string>
+    <string name="activity_buzzed">Buzzed after %1$s s</string>
+    <string name="activity_missed">Missed. %1$s</string>
+
+    <!-- Problem card: Bluetooth off -->
+    <string name="bluetooth_off_title">Bluetooth</string>
+    <string name="bluetooth_off_status">Off</string>
+    <string name="bluetooth_off_desc">Air Alerts reaches your Fitbit Air over Bluetooth. Nothing can buzz while it\'s off.</string>
+    <string name="bluetooth_off_btn">Turn on Bluetooth</string>
+
+    <!-- Problem card: Nearby devices permission -->
+    <string name="nearby_title">Nearby devices</string>
+    <string name="nearby_status">Not allowed</string>
+    <string name="nearby_desc">Air Alerts needs Android\'s Nearby devices permission to reach your Fitbit Air.</string>
+    <string name="nearby_btn">Allow</string>
+    <string name="nearby_settings_btn">Open settings</string>
+
+    <!-- Problem card: no Fitbit Air paired -->
+    <string name="not_paired_title">No Fitbit Air found</string>
+    <string name="not_paired_status">Not paired</string>
+    <string name="not_paired_desc">No Fitbit Air is paired with this phone. Pair yours in Google Health, then come back here.</string>
+    <string name="not_paired_btn">Open Google Health</string>
+
+    <!-- Problem card: notification access -->
+    <string name="access_title">Notification access</string>
+    <string name="access_status">Not allowed</string>
+    <string name="access_desc">Air Alerts needs notification access to see calls and notifications as they arrive.</string>
+    <string name="access_btn">Allow access</string>
+
+    <!-- Other -->
+    <string name="unofficial_note">Air Alerts isn\'t made by Google or Fitbit. A Fitbit Air update could stop it working.</string>
+    <string name="listener_label">Air Alerts</string>
+</resources>

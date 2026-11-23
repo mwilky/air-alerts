@@ -1,0 +1,21 @@
+*.iml
+.gradle
+.kotlin
+/local.properties
+local.properties
+/.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+app/build/
+app/release/
+
+# Local AI-assistant files
+CLAUDE.md
+.claudeignore
+/.claude/
+
+# Claude-generated implementation plans, kept locally only
+docs/*-plan.md
