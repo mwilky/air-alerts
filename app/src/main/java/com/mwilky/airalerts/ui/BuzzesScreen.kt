@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -42,15 +43,9 @@ fun BuzzesScreen(viewModel: HomeViewModel = viewModel()) {
 @Composable
 fun BuzzesContent(state: HomeUiState, environment: Environment, onTestBuzz: () -> Unit) {
     PageScaffold(title = stringResource(R.string.nav_activity)) {
-        BandCard(
-            busy = state.busy,
-            environment = environment,
-            latest = state.activity.firstOrNull(),
-            onTestBuzz = onTestBuzz
-        )
-
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             RuleGroupHeader(stringResource(R.string.steps_header))
+            TestBuzzButton(busy = state.busy, ready = environment.canBuzz, onTestBuzz = onTestBuzz)
             StepList(state.lastRun)
         }
 
@@ -61,46 +56,36 @@ fun BuzzesContent(state: HomeUiState, environment: Environment, onTestBuzz: () -
     }
 }
 
+/** Test buzz, and why it's off when something on Home is stopping buzzes. */
 @Composable
-private fun BandCard(busy: Boolean, environment: Environment, latest: ActivityEntry?, onTestBuzz: () -> Unit) {
-    val context = LocalContext.current
-    val ready = environment.canBuzz
-    val subtitle = when {
-        latest == null -> stringResource(R.string.band_never_buzzed)
-        latest.buzzed -> stringResource(R.string.band_last_buzz, clockTime(context, latest.atMillis), seconds(latest.tookMillis!!))
-        else -> stringResource(R.string.band_last_failed, clockTime(context, latest.atMillis), errorText(latest.error, latest.detail))
-    }
-    ExpressiveStatusCard(
-        title = stringResource(R.string.band_title),
-        subtitle = subtitle,
-        icon = Icons.Rounded.Watch,
-        statusText = stringResource(
-            when {
-                busy -> R.string.band_status_busy
-                environment.nearbyAllowed && !environment.bandPaired -> R.string.band_status_missing
-                else -> R.string.band_status_ready
-            }
-        ),
-        accentColor = if (ready) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        bottomAction = {
-            Button(
-                onClick = onTestBuzz,
-                enabled = ready && !busy,
-                modifier = Modifier.fillMaxWidth(),
-                shapes = ButtonDefaults.shapes()
-            ) {
-                if (busy) {
-                    LoadingIndicator(modifier = Modifier.size(ButtonDefaults.IconSize))
-                    Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                    Text(stringResource(R.string.band_test_running))
-                } else {
-                    ButtonLabel(Icons.Rounded.Vibration, stringResource(R.string.band_test_btn))
-                }
+private fun TestBuzzButton(busy: Boolean, ready: Boolean, onTestBuzz: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Button(
+            onClick = onTestBuzz,
+            enabled = ready && !busy,
+            modifier = Modifier.fillMaxWidth(),
+            shapes = ButtonDefaults.shapes()
+        ) {
+            if (busy) {
+                LoadingIndicator(modifier = Modifier.size(ButtonDefaults.IconSize))
+                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                Text(stringResource(R.string.band_test_running))
+            } else {
+                ButtonLabel(Icons.Rounded.Vibration, stringResource(R.string.band_test_btn))
             }
         }
-    )
+        if (!ready) {
+            Text(
+                text = stringResource(R.string.band_blocked_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            )
+        }
+    }
 }
 
 @Composable
@@ -205,7 +190,7 @@ private fun ActivityList(entries: List<ActivityEntry>) {
 }
 
 @Composable
-private fun errorText(error: BuzzError?, detail: String?): String = when (error) {
+internal fun errorText(error: BuzzError?, detail: String?): String = when (error) {
     BuzzError.BLUETOOTH_OFF -> stringResource(R.string.error_bluetooth_off)
     BuzzError.NO_PERMISSION -> stringResource(R.string.error_no_permission)
     BuzzError.NOT_PAIRED -> stringResource(R.string.error_not_paired)
@@ -216,9 +201,9 @@ private fun errorText(error: BuzzError?, detail: String?): String = when (error)
     BuzzError.UNEXPECTED, null -> stringResource(R.string.error_unexpected, detail ?: "?")
 }
 
-private fun seconds(millis: Long) = String.format(Locale.getDefault(), "%.1f", millis / 1000.0)
+internal fun seconds(millis: Long) = String.format(Locale.getDefault(), "%.1f", millis / 1000.0)
 
-private fun clockTime(context: Context, millis: Long): String = DateFormat.getTimeFormat(context).format(Date(millis))
+internal fun clockTime(context: Context, millis: Long): String = DateFormat.getTimeFormat(context).format(Date(millis))
 
 // Previews
 
@@ -256,5 +241,13 @@ fun BuzzesScreenPreviewBuzzing() {
 fun BuzzesScreenPreviewEmpty() {
     AirAlertsTheme {
         BuzzesContent(state = HomeUiState(), environment = Environment(), onTestBuzz = {})
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun BuzzesScreenPreviewBlocked() {
+    AirAlertsTheme {
+        BuzzesContent(state = HomeUiState(), environment = Environment(bluetoothOn = false), onTestBuzz = {})
     }
 }

@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mwilky.airalerts.ActivityEntry
+import com.mwilky.airalerts.AlertKind
 import com.mwilky.airalerts.AlertListener
 import com.mwilky.airalerts.AlertSettings
 import com.mwilky.airalerts.R
@@ -188,6 +190,8 @@ fun HomeContent(
 ) {
     PageScaffold(title = stringResource(R.string.app_name)) {
         ProblemCard(environment, state.settings, onAllowNearby, onOpenAppSettings, onTurnOnBluetooth, onOpenGoogleHealth, onAllowNotificationAccess)
+        // A Bluetooth, Nearby devices or pairing problem above takes this card's place.
+        if (environment.canBuzz) BandStatusCard(state.activity.firstOrNull())
 
         SectionHero(
             title = stringResource(R.string.hero_title),
@@ -294,6 +298,38 @@ private fun ProblemCard(
     }
 }
 
+/** Your Fitbit Air is reachable as far as the phone can tell, and how the last buzz went. */
+@Composable
+private fun BandStatusCard(latest: ActivityEntry?) {
+    val context = LocalContext.current
+    val title = stringResource(R.string.band_title)
+    val status = stringResource(R.string.band_status_ready)
+    if (latest == null || latest.buzzed) {
+        StandardDiagnosticCard(
+            title = title,
+            subtitle = if (latest == null) {
+                stringResource(R.string.home_band_never_buzzed)
+            } else {
+                stringResource(R.string.band_last_buzz, clockTime(context, latest.atMillis), seconds(latest.tookMillis!!))
+            },
+            icon = Icons.Rounded.Watch,
+            statusText = status,
+            isOk = true
+        )
+    } else {
+        // A missed buzz is often Google Health busy with the band, so neutral rather than red.
+        ExpressiveStatusCard(
+            title = title,
+            subtitle = stringResource(R.string.band_last_failed, clockTime(context, latest.atMillis), errorText(latest.error, latest.detail)),
+            icon = Icons.Rounded.Watch,
+            statusText = status,
+            accentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
 // Previews
 
 @Composable
@@ -317,7 +353,12 @@ private fun PreviewHome(state: HomeUiState, environment: Environment = Environme
 @Preview(showBackground = true)
 @Composable
 fun HomeScreenPreviewOn() {
-    PreviewHome(HomeUiState(settings = AlertSettings(enabled = true)))
+    PreviewHome(
+        HomeUiState(
+            settings = AlertSettings(enabled = true),
+            activity = listOf(ActivityEntry(atMillis = 1_763_900_000_000, kind = AlertKind.NOTIFICATION, appName = "WhatsApp", tookMillis = 2_800))
+        )
+    )
 }
 
 @Preview(showBackground = true)

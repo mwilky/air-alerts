@@ -8,13 +8,12 @@
     <!-- Band card -->
     <string name="band_title">Google Fitbit Air</string>
     <string name="band_status_ready">Ready</string>
-    <string name="band_status_busy">Buzzing</string>
-    <string name="band_status_missing">Not paired</string>
     <string name="band_last_buzz">Last buzz at %1$s. It took %2$s s.</string>
     <string name="band_last_failed">Last try at %1$s failed. %2$s</string>
-    <string name="band_never_buzzed">No buzz yet. Tap Test buzz to try one.</string>
     <string name="band_test_btn">Test buzz</string>
     <string name="band_test_running">Buzzing&#8230;</string>
+    <string name="band_blocked_hint">Something is stopping buzzes. Fix it on the Home tab.</string>
+    <string name="home_band_never_buzzed">No buzz yet. Try a Test buzz on the Buzzes tab.</string>
 
     <!-- Last test (steps) -->
     <string name="steps_header">Last test</string>
