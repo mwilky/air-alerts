@@ -285,57 +285,62 @@ internal fun HomePageToggle(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        tabs.forEachIndexed { index, (icon, labelRes) ->
-            val selected = selectedIndex == index
-            val label = stringResource(labelRes)
-            ToggleButton(
-                checked = selected,
-                onCheckedChange = { onSelect(index) },
-                // Circular while it's only an icon, rounded rectangle once it carries a label.
-                shapes = ToggleButtonShapes(
-                    shape = CircleShape,
-                    pressedShape = RoundedCornerShape(14.dp),
-                    checkedShape = RoundedCornerShape(18.dp)
-                ),
-                // Surface tones rather than primary: the selected tab is a step darker than the
-                // unselected ones instead of a colour change.
-                colors = ToggleButtonDefaults.colors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    checkedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    checkedContentColor = MaterialTheme.colorScheme.onSurface
-                ),
-                // 24dp icon plus 12dp either side makes an exact circle at this height.
-                contentPadding = PaddingValues(horizontal = 12.dp),
-                modifier = Modifier
-                    .then(if (selected) Modifier.weight(1f, fill = false) else Modifier)
-                    .height(TabHeight)
-                    .semantics { role = Role.RadioButton }
-            ) {
-                Icon(icon, contentDescription = label, modifier = Modifier.size(24.dp))
-                AnimatedVisibility(
-                    visible = selected,
-                    enter = fadeIn(effects) + expandHorizontally(spatial),
-                    exit = fadeOut(effects) + shrinkHorizontally(spatial)
+        // The tabs get their own row holding all the free width, so the selected label only
+        // shortens when it really runs out of room, rather than splitting the space with a spacer.
+        Row(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            tabs.forEachIndexed { index, (icon, labelRes) ->
+                val selected = selectedIndex == index
+                val label = stringResource(labelRes)
+                ToggleButton(
+                    checked = selected,
+                    onCheckedChange = { onSelect(index) },
+                    // Circular while it's only an icon, rounded rectangle once it carries a label.
+                    shapes = ToggleButtonShapes(
+                        shape = CircleShape,
+                        pressedShape = RoundedCornerShape(14.dp),
+                        checkedShape = RoundedCornerShape(18.dp)
+                    ),
+                    // Surface tones rather than primary: the selected tab is a step darker than the
+                    // unselected ones instead of a colour change.
+                    colors = ToggleButtonDefaults.colors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        checkedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        checkedContentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    // 24dp icon plus 12dp either side makes an exact circle at this height.
+                    contentPadding = PaddingValues(horizontal = 12.dp),
+                    modifier = Modifier
+                        .then(if (selected) Modifier.weight(1f, fill = false) else Modifier)
+                        .height(TabHeight)
+                        .semantics { role = Role.RadioButton }
                 ) {
-                    Row {
-                        Spacer(Modifier.width(ToggleButtonDefaults.IconSpacing))
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelLarge,
-                            maxLines = 1,
-                            softWrap = false,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                    Icon(icon, contentDescription = label, modifier = Modifier.size(24.dp))
+                    AnimatedVisibility(
+                        visible = selected,
+                        enter = fadeIn(effects) + expandHorizontally(spatial),
+                        exit = fadeOut(effects) + shrinkHorizontally(spatial)
+                    ) {
+                        Row {
+                            Spacer(Modifier.width(ToggleButtonDefaults.IconSpacing))
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelLarge,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
             }
         }
-        if (trailing != null) {
-            // Pushed to the far end, apart from the page buttons.
-            Spacer(Modifier.weight(1f))
-            trailing()
-        }
+        // At the far end, apart from the page buttons.
+        trailing?.invoke()
     }
 }
 
