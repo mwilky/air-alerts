@@ -17,7 +17,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mwilky.airalerts.ui.OnboardingScreen
+import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import com.mwilky.airalerts.ui.AirAlertsTheme
@@ -28,9 +33,18 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val store = (application as AirAlertsApp).store
         setContent {
             AirAlertsTheme {
-                MainAppNavigation()
+                val onboarded by store.onboarded.collectAsStateWithLifecycle(initialValue = null)
+                val scope = rememberCoroutineScope()
+                when (onboarded) {
+                    null -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        LoadingIndicator()
+                    }
+                    false -> OnboardingScreen(onComplete = { scope.launch { store.completeOnboarding() } })
+                    true -> MainAppNavigation()
+                }
             }
         }
     }

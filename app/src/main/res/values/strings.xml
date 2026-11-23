@@ -66,7 +66,6 @@
     <!-- Calls page -->
     <string name="calls_hero_title">Buzz for calls</string>
     <string name="calls_off_hint">Calls don\'t buzz your Fitbit Air while this is off. Your rules are kept.</string>
-    <string name="calls_desc">Keeps buzzing while a call rings, including calls in apps like WhatsApp. Calls you make don\'t buzz.</string>
     <string name="calls_fav_title">Favourite contacts</string>
     <string name="calls_fav_desc">Calls from contacts you\'ve starred always buzz.</string>
     <string name="calls_contacts_title">All other contacts</string>
@@ -80,7 +79,6 @@
     <!-- Notifications page -->
     <string name="notifs_hero_title">Buzz for notifications</string>
     <string name="notifs_off_hint">Notifications don\'t buzz your Fitbit Air while this is off. Your rules are kept.</string>
-    <string name="notifications_desc">One buzz for each notification that makes a sound or vibrates the phone. Silent ones don\'t buzz.</string>
     <string name="notifs_fav_title">Favourite contacts</string>
     <string name="notifs_fav_desc">Notifications from contacts you\'ve starred always buzz, whatever the app.</string>
     <string name="notifs_others_title">All other notifications</string>
@@ -136,6 +134,41 @@
     <string name="contacts_status">Not allowed</string>
     <string name="contacts_desc">Air Alerts needs Android\'s Contacts permission to tell your favourites and saved contacts apart.</string>
     <string name="contacts_btn">Allow</string>
+
+    <!-- Onboarding -->
+    <string name="btn_back">Back</string>
+    <string name="btn_next">Next</string>
+    <string name="onboarding_done">Finish</string>
+    <string name="onboarding_title">Welcome to Air Alerts</string>
+    <string name="onboarding_subtitle">Your Fitbit Air buzzes when your phone rings or a notification arrives.</string>
+    <string name="feature_calls_title">Calls</string>
+    <string name="feature_calls_desc">Keeps buzzing while a call rings, in any calling app.</string>
+    <string name="feature_notifs_title">Notifications</string>
+    <string name="feature_notifs_desc">One buzz for each notification.</string>
+    <string name="feature_rules_title">Rules</string>
+    <string name="feature_rules_desc">Choose which callers, contacts, favourites and apps buzz or stay quiet.</string>
+    <string name="onboarding_band_title">Your Fitbit Air</string>
+    <string name="onboarding_band_body">Air Alerts reaches the Fitbit Air that Google Health has already paired with this phone. Check these three things first.</string>
+    <string name="nearby_status_ok">Allowed</string>
+    <string name="nearby_desc_ok">Air Alerts can reach your Fitbit Air.</string>
+    <string name="bluetooth_on_status">On</string>
+    <string name="bluetooth_on_desc">Air Alerts reaches your Fitbit Air over Bluetooth.</string>
+    <string name="paired_status">Paired</string>
+    <string name="paired_desc">Your Fitbit Air is paired with this phone.</string>
+    <string name="paired_unknown_status">Can\'t check yet</string>
+    <string name="paired_unknown_desc">Air Alerts can check for your Fitbit Air once you allow Nearby devices.</string>
+    <string name="onboarding_perms_title">Permissions</string>
+    <string name="onboarding_perms_body">Air Alerts needs notification access to work. Contacts is optional.</string>
+    <string name="access_status_ok">Allowed</string>
+    <string name="access_desc_ok">Air Alerts can see calls and notifications as they arrive.</string>
+    <string name="contacts_status_ok">Allowed</string>
+    <string name="contacts_desc_ok">Air Alerts can tell your favourites and saved contacts apart.</string>
+    <string name="contacts_optional_status">Optional</string>
+    <string name="contacts_optional_desc">Only needed for rules about favourites, and to tell saved contacts from unknown numbers. You can allow it later.</string>
+    <string name="onboarding_test_title">Try a buzz</string>
+    <string name="onboarding_test_body">Send a test buzz to check everything works.</string>
+    <string name="test_success_title">Your Fitbit Air buzzed</string>
+    <string name="test_success_desc">Everything\'s working, so you\'re ready to finish.</string>
 
     <!-- Other -->
     <string name="unofficial_note">Air Alerts isn\'t made by Google or Fitbit. A Fitbit Air update could stop it working.</string>

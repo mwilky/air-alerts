@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -53,12 +54,22 @@ fun BuzzesContent(state: HomeUiState, environment: Environment, onTestBuzz: () -
             RuleGroupHeader(stringResource(R.string.activity_header))
             ActivityList(state.activity)
         }
+
+        Text(
+            text = stringResource(R.string.unofficial_note),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        )
     }
 }
 
 /** Test buzz in a card, with how the last buzz went, or why it's off when something on Home is stopping buzzes. */
 @Composable
-private fun TestBuzzCard(busy: Boolean, ready: Boolean, lastRun: BuzzRun?, onTestBuzz: () -> Unit) {
+internal fun TestBuzzCard(busy: Boolean, ready: Boolean, lastRun: BuzzRun?, onTestBuzz: () -> Unit) {
     ExpressiveStatusCard(
         title = stringResource(R.string.test_card_title),
         subtitle = stringResource(if (ready) R.string.test_card_desc else R.string.band_blocked_hint),

@@ -122,7 +122,6 @@ fun ColumnScope.HomeCallsPage(settings: AlertSettings, actions: HomeActions) {
                 onDelete = actions.onDeleteCallerRule,
                 onAdd = actions.onAddCaller
             )
-            PageNote(stringResource(R.string.calls_desc))
         }
     }
 }
@@ -188,7 +187,6 @@ fun ColumnScope.HomeNotifsPage(settings: AlertSettings, actions: HomeActions) {
                 }
             }
             AddRuleButton(stringResource(R.string.notifs_add_app_btn), Icons.Rounded.Add, actions.onAddApp)
-            PageNote(stringResource(R.string.notifications_desc))
         }
     }
 }
@@ -225,19 +223,6 @@ private fun ContactRuleGroup(
         }
     }
     AddRuleButton(addText, Icons.Rounded.PersonAdd, onAdd)
-}
-
-/** Small print under a page's rules, like the unofficial note at the foot of each page. */
-@Composable
-internal fun PageNote(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp)
-    )
 }
 
 @Composable

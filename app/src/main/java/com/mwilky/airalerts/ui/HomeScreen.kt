@@ -270,7 +270,7 @@ private const val PICK_CALLER = "caller"
 private const val PICK_SENDER = "sender"
 
 /** Google Health if it's installed, else Bluetooth settings. */
-private fun googleHealthIntent(context: Context): Intent =
+internal fun googleHealthIntent(context: Context): Intent =
     GOOGLE_HEALTH_PACKAGES.firstNotNullOfOrNull { context.packageManager.getLaunchIntentForPackage(it) }
         ?: Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
 
@@ -314,6 +314,19 @@ fun HomeContent(
                 .padding(padding),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Status covers both pages, so it sits above the toggle and stays put while they swipe.
+            Column(
+                modifier = Modifier
+                    .widthIn(max = 640.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                ProblemCard(environment, state.settings, problems)
+                // A Bluetooth, Nearby devices or pairing problem above takes this card's place.
+                if (environment.canBuzz) BandStatusCard(state.activity.firstOrNull(), state.battery, state.checkingBattery)
+            }
             HomePageToggle(
                 selectedIndex = pagerState.currentPage,
                 onSelect = { page -> scope.launch { pagerState.animateScrollToPage(page) } }
@@ -324,9 +337,6 @@ fun HomeContent(
                 verticalAlignment = Alignment.Top
             ) { page ->
                 ScrollingPage(topPadding = 0.dp) {
-                    ProblemCard(environment, state.settings, problems)
-                    // A Bluetooth, Nearby devices or pairing problem above takes this card's place.
-                    if (environment.canBuzz) BandStatusCard(state.activity.firstOrNull(), state.battery, state.checkingBattery)
                     when (page) {
                         0 -> {
                             if (state.settings.calls && state.settings.callFavourites && !environment.contactsAccess) {
@@ -341,15 +351,6 @@ fun HomeContent(
                             HomeNotifsPage(state.settings, actions)
                         }
                     }
-                    Text(
-                        text = stringResource(R.string.unofficial_note),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                    )
                 }
             }
         }
@@ -358,7 +359,7 @@ fun HomeContent(
 
 /** A red card naming a problem, with the button that fixes it. */
 @Composable
-private fun Problem(title: Int, status: Int, desc: Int, icon: ImageVector, button: Int, buttonIcon: ImageVector, onClick: () -> Unit) {
+internal fun Problem(title: Int, status: Int, desc: Int, icon: ImageVector, button: Int, buttonIcon: ImageVector, onClick: () -> Unit) {
     StandardDiagnosticCard(
         title = stringResource(title),
         subtitle = stringResource(desc),

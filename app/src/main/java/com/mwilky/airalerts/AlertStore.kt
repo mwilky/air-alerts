@@ -80,6 +80,17 @@ class AlertStore(private val context: Context) {
         }
     }
 
+    /**
+     * Whether first-run setup is done. Anyone who'd already set the app up before onboarding
+     * existed counts as done.
+     */
+    val onboarded: Flow<Boolean> = context.dataStore.data.map { p ->
+        p[ONBOARDED] ?: (p[ENABLED] != null || p[CALLS_ON] != null || p[NOTIFICATIONS_ON] != null)
+    }
+
+    /** Ends onboarding. Calls and notifications stay off until they're switched on at Home. */
+    suspend fun completeOnboarding() = context.dataStore.edit { it[ONBOARDED] = true }
+
     suspend fun currentSettings() = settings.first()
 
     suspend fun setCalls(value: Boolean) = context.dataStore.edit { it[CALLS_ON] = value }
@@ -211,6 +222,7 @@ class AlertStore(private val context: Context) {
         val ENABLED = booleanPreferencesKey("enabled")
         val CALLS = booleanPreferencesKey("calls")
         val NOTIFICATIONS = booleanPreferencesKey("notifications")
+        val ONBOARDED = booleanPreferencesKey("onboarded")
         val CALLS_ON = booleanPreferencesKey("calls_on")
         val NOTIFICATIONS_ON = booleanPreferencesKey("notifications_on")
         val CALL_FAVOURITES = booleanPreferencesKey("call_favourites")
