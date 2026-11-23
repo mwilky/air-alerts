@@ -6,6 +6,8 @@ import android.content.ComponentName
 import android.content.Context
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
+import android.util.Log
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -15,8 +17,11 @@ import kotlinx.coroutines.launch
 class AlertListener : NotificationListenerService() {
     private val app get() = application as AirAlertsApp
 
-    /** Calls buzz once each, not again for every update while they ring. */
+    /** Calls start one buzz each, not another for every update while they ring. */
     private val buzzedCalls = mutableSetOf<String>()
+
+    /** True while each incoming call rings; the buzz repeats until it turns false. */
+    private val ringingCalls = mutableMapOf<String, MutableStateFlow<Boolean>>()
 
     /** Last buzz per notification key, so an update re-posting it doesn't buzz again. */
     private val recent = mutableMapOf<String, Long>()
@@ -29,8 +34,22 @@ class AlertListener : NotificationListenerService() {
         val ranking = Ranking().also { rankingMap.getRanking(sbn.key, it) }
         if (!ranking.matchesInterruptionFilter()) return // Do Not Disturb hides it
 
+        var ringing: MutableStateFlow<Boolean>? = null
         val kind = if (isCall) {
-            if (!buzzedCalls.add(sbn.key)) return
+            val type = n.extras.getInt(Notification.EXTRA_CALL_TYPE, Notification.CallStyle.CALL_TYPE_UNKNOWN)
+            Log.d(TAG, "call ${sbn.packageName} type $type")
+            if (sbn.key in buzzedCalls) {
+                // The same call updated: answered (ongoing) or being screened ends the ringing.
+                if (type != Notification.CallStyle.CALL_TYPE_INCOMING) ringingCalls[sbn.key]?.value = false
+                return
+            }
+            // A call you make, or one already answered or being screened, doesn't buzz.
+            if (type == Notification.CallStyle.CALL_TYPE_ONGOING || type == Notification.CallStyle.CALL_TYPE_SCREENING) return
+            buzzedCalls += sbn.key
+            // Apps that don't say the call's type get the old single buzz.
+            if (type == Notification.CallStyle.CALL_TYPE_INCOMING) {
+                ringing = MutableStateFlow(true).also { ringingCalls[sbn.key] = it }
+            }
             AlertKind.CALL
         } else {
             if (sbn.isOngoing || ranking.importance < NotificationManager.IMPORTANCE_DEFAULT) return
@@ -48,12 +67,19 @@ class AlertListener : NotificationListenerService() {
                 AlertKind.CALL -> settings.calls
                 else -> settings.notifications
             }
-            if (wanted) app.buzzer.request(AlertBuzzer.Trigger(kind, appName, sbn.postTime))
+            if (wanted) app.buzzer.request(AlertBuzzer.Trigger(kind, appName, sbn.postTime, ringing))
         }
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
         buzzedCalls.remove(sbn.key)
+        ringingCalls.remove(sbn.key)?.value = false
+    }
+
+    override fun onListenerDisconnected() {
+        // We'd no longer hear the call end, so stop any buzzing now.
+        ringingCalls.values.forEach { it.value = false }
+        ringingCalls.clear()
     }
 
     private fun appLabel(pkg: String): String = runCatching {
@@ -61,6 +87,7 @@ class AlertListener : NotificationListenerService() {
     }.getOrDefault(pkg)
 
     companion object {
+        private const val TAG = "AirAlerts"
         private const val REPEAT_GAP_MS = 5_000L
 
         fun hasAccess(context: Context): Boolean =

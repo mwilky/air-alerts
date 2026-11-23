@@ -64,6 +64,9 @@ sealed interface BuzzResult {
  * The band has a single channel shared by every app on the link, so whatever happens (success,
  * failure, timeout or cancellation) the channel is handed back and our client closed before
  * [buzz] returns. One buzz runs at a time.
+ *
+ * For a ringing call the session stays open and buzzes again every [RING_GAP_MS] until the call
+ * stops ringing, so there's one handshake and one hand-back however long it rings.
  */
 class AirBand(private val context: Context) {
     private val mutex = Mutex()
@@ -76,10 +79,11 @@ class AirBand(private val context: Context) {
     private val _busy = MutableStateFlow(false)
     val busy: StateFlow<Boolean> = _busy.asStateFlow()
 
-    suspend fun buzz(): BuzzResult = mutex.withLock {
+    /** Buzzes once, then again every [RING_GAP_MS] while [repeatWhile] stays true (at most [RING_MAX_MS]). */
+    suspend fun buzz(repeatWhile: StateFlow<Boolean>? = null): BuzzResult = mutex.withLock {
         _busy.value = true
         try {
-            Session().run()
+            Session(repeatWhile).run()
         } finally {
             _busy.value = false
         }
@@ -99,7 +103,7 @@ class AirBand(private val context: Context) {
     fun bluetoothOn() = context.getSystemService(BluetoothManager::class.java)?.adapter?.isEnabled == true
 
     /** One attempt. All link-side state lives on [handler]'s thread. */
-    private inner class Session {
+    private inner class Session(private val repeatWhile: StateFlow<Boolean>?) {
         private val start = SystemClock.elapsedRealtime()
         private var stepStart = start
         private var link: AirLink? = null
@@ -145,9 +149,13 @@ class AirBand(private val context: Context) {
                 onLink { link?.requestFast() }
 
                 begin(BuzzStep.BUZZ)
-                withContext(Dispatchers.IO) { runInterruptible { sendBuzz(dtls) } }
+                val coap = CoapChannel(dtls)
+                val strength = blocking { readStrength(coap) }
+                blocking { sendBuzz(coap, strength) }
                 buzzedAt = SystemClock.elapsedRealtime()
                 done(BuzzStep.BUZZ)
+                repeatWhile?.let { ringBuzz(coap, strength, it) }
+                keepStrength(coap, strength)
             } catch (e: BandException) {
                 Log.w(TAG, "buzz failed: ${e.error} ${e.detail.orEmpty()}")
                 fail(BuzzFailure(e.error, e.detail))
@@ -314,21 +322,61 @@ class AirBand(private val context: Context) {
             throw BandException(BuzzError.SECURE, lastProblem)
         }
 
-        /** Reads the wearer's strength, buzzes once at it, and checks it's still set. Blocking. */
-        private fun sendBuzz(dtls: DTLSTransport) {
-            val coap = CoapChannel(dtls)
+        /** The wearer's buzz strength. Blocking. */
+        private fun readStrength(coap: CoapChannel): Int {
             val read = coap.exchange(Coap.PUT, AirHaptics.READ_REQUEST)
-            val strength = AirHaptics.parseStrength(read.payload)
+            return AirHaptics.parseStrength(read.payload)
                 ?: throw BandException(BuzzError.REJECTED, "settings ${read.codeText} ${read.payload.hex()}")
+        }
+
+        /** One buzz that leaves [strength] in place. Blocking. */
+        private fun sendBuzz(coap: CoapChannel, strength: Int) {
             val write = coap.exchange(Coap.POST, AirHaptics.buzz(strength))
             if (!write.isSuccess) throw BandException(BuzzError.REJECTED, "buzz ${write.codeText}")
-            val check = AirHaptics.parseStrength(coap.exchange(Coap.PUT, AirHaptics.READ_REQUEST).payload)
-            if (check != strength) {
-                // Put the wearer's strength back if the band kept the other one.
-                Log.w(TAG, "strength $check after buzz, restoring $strength")
-                coap.exchange(Coap.POST, AirHaptics.entry(strength))
+        }
+
+        /**
+         * Buzzes again every [RING_GAP_MS] over the same secure session while [ringing] stays true,
+         * for at most [RING_MAX_MS] from the first buzz. A repeat that fails ends the repeats but not
+         * the attempt: the first buzz already landed.
+         */
+        private suspend fun ringBuzz(coap: CoapChannel, strength: Int, ringing: StateFlow<Boolean>) {
+            val until = SystemClock.elapsedRealtime() + RING_MAX_MS
+            var count = 1
+            while (SystemClock.elapsedRealtime() < until) {
+                // Wakes early the moment the call is answered, declined or missed.
+                val stopped = withTimeoutOrNull(RING_GAP_MS) { ringing.first { !it } } != null
+                if (stopped || disconnected.isCompleted) break
+                try {
+                    blocking { sendBuzz(coap, strength) }
+                    count++
+                } catch (e: BandException) {
+                    Log.w(TAG, "repeat buzz refused: ${e.detail.orEmpty()}")
+                    break
+                } catch (e: IOException) {
+                    Log.w(TAG, "repeat buzz failed", e)
+                    break
+                }
+            }
+            Log.d(TAG, "buzzed $count time(s) while ringing")
+        }
+
+        /** Puts the wearer's strength back if the band kept the other one. Never fails the attempt. */
+        private suspend fun keepStrength(coap: CoapChannel, strength: Int) {
+            try {
+                val check = blocking { AirHaptics.parseStrength(coap.exchange(Coap.PUT, AirHaptics.READ_REQUEST).payload) }
+                if (check != strength) {
+                    Log.w(TAG, "strength $check after buzz, restoring $strength")
+                    blocking { coap.exchange(Coap.POST, AirHaptics.entry(strength)) }
+                }
+            } catch (e: BandException) {
+                Log.w(TAG, "couldn't check strength: ${e.detail.orEmpty()}")
+            } catch (e: IOException) {
+                Log.w(TAG, "couldn't check strength", e)
             }
         }
+
+        private suspend fun <T> blocking(block: () -> T): T = withContext(Dispatchers.IO) { runInterruptible { block() } }
 
         /**
          * Gives the channel back: a new link reset makes the band offer Google Health's key again,
@@ -437,6 +485,12 @@ class AirBand(private val context: Context) {
         private const val HANDBACK_TIMEOUT_MS = 10_000L
         private const val COAP_TRIES = 3
         private const val COAP_WAIT_MS = 2_000L
+
+        /** Gap between buzzes while a call rings. 2 s worked on the band but felt too slow. */
+        const val RING_GAP_MS = 1_000L
+
+        /** Calls usually go to voicemail before this; stops a stuck notification buzzing forever. */
+        const val RING_MAX_MS = 60_000L
 
         @Volatile
         private var instance: AirBand? = null
