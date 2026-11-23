@@ -16,7 +16,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Launch
@@ -36,6 +39,19 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.draw.clip
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.spring
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Velocity
+import kotlin.math.roundToInt
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import java.util.UUID
@@ -133,12 +149,13 @@ internal fun PageScaffold(title: String, content: @Composable ColumnScope.() -> 
 internal fun ScrollingPage(
     modifier: Modifier = Modifier,
     topPadding: Dp = 8.dp,
+    scrollState: ScrollState = rememberScrollState(),
     content: @Composable ColumnScope.() -> Unit
 ) {
     Box(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(scrollState),
         contentAlignment = Alignment.TopCenter
     ) {
         Column(
@@ -298,6 +315,17 @@ fun HomeContent(
     val pagerState = rememberPagerState(initialPage) { 2 }
     val scope = rememberCoroutineScope()
 
+    // The status card folds into a chip as the pages scroll, and opens again at the top.
+    val pageScrolls = listOf(rememberScrollState(), rememberScrollState())
+    // Each page folds the card as far as its own scroll took it.
+    val status = remember { StatusCollapse(pages = 2) }
+    if (!environment.canBuzz) status.range = 0f
+    status.page = pagerState.currentPage
+    // A page with nothing to scroll (one that's switched off, say) leaves the card open rather
+    // than turning empty space into something to scroll. Once folding has started the page counts
+    // as scrollable, so the card can finish folding even if the page then fits.
+    status.canFold = { pageScrolls[status.page].maxValue > 0 || status.offset(status.page) > 0f }
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
@@ -311,7 +339,8 @@ fun HomeContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
+                .nestedScroll(status.connection),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Status covers both pages, so it sits above the toggle and stays put while they swipe.
@@ -325,7 +354,19 @@ fun HomeContent(
             ) {
                 ProblemCard(environment, state.settings, problems)
                 // A Bluetooth, Nearby devices or pairing problem above takes this card's place.
-                if (environment.canBuzz) BandStatusCard(state.activity.firstOrNull(), state.battery, state.checkingBattery)
+                if (environment.canBuzz) {
+                    BandStatusCard(
+                        latest = state.activity.firstOrNull(),
+                        battery = state.battery,
+                        checkingBattery = state.checkingBattery,
+                        collapse = status,
+                        pagerPosition = { pagerState.currentPage + pagerState.currentPageOffsetFraction },
+                        onExpand = {
+                            scope.launch { pageScrolls[pagerState.currentPage].animateScrollTo(0) }
+                            scope.launch { status.expand() }
+                        }
+                    )
+                }
             }
             HomePageToggle(
                 selectedIndex = pagerState.currentPage,
@@ -336,7 +377,7 @@ fun HomeContent(
                 modifier = Modifier.fillMaxSize(),
                 verticalAlignment = Alignment.Top
             ) { page ->
-                ScrollingPage(topPadding = 0.dp) {
+                ScrollingPage(topPadding = 0.dp, scrollState = pageScrolls[page]) {
                     when (page) {
                         0 -> {
                             if (state.settings.calls && state.settings.callFavourites && !environment.contactsAccess) {
@@ -406,9 +447,114 @@ private fun ContactsCard(onAllow: () -> Unit) {
     Problem(R.string.contacts_title, R.string.contacts_status, R.string.contacts_desc, Icons.Rounded.Contacts, R.string.contacts_btn, Icons.Rounded.Check, onAllow)
 }
 
-/** Your Fitbit Air is reachable as far as the phone can tell, and how the last buzz went. */
+/**
+ * How far the status card has folded towards its chip on each page, in pixels of scroll it has
+ * taken. Like a collapsing app bar it takes the scroll before the page does on the way down, and
+ * gives it back only once the page is at its top, so the card follows the finger instead of a
+ * scroll position its own size keeps changing. A part-folded card settles to whichever end is
+ * nearer.
+ */
+@Stable
+private class StatusCollapse(pages: Int) {
+    private val offsets = mutableStateListOf<Float>().apply { repeat(pages) { add(0f) } }
+
+    /** The page whose scroll moves the fold: the one in view. */
+    var page = 0
+
+    /** Card height minus chip height; set as they're measured. */
+    var range = 0f
+
+    /** Whether the page in view can fold the card at all. */
+    var canFold: () -> Boolean = { true }
+
+    fun offset(page: Int) = offsets[page]
+
+    private fun progressOf(page: Int) = if (range > 0f) (offsets[page] / range).coerceIn(0f, 1f) else 0f
+
+    /** Mid-swipe the fold blends from one page's to the other's, so the card never jumps. */
+    fun progressAt(pagerPosition: Float): Float {
+        val last = offsets.lastIndex
+        val position = pagerPosition.coerceIn(0f, last.toFloat())
+        val from = position.toInt().coerceAtMost(last)
+        val to = (from + 1).coerceAtMost(last)
+        val f = position - from
+        return progressOf(from) * (1f - f) + progressOf(to) * f
+    }
+
+    val connection = object : NestedScrollConnection {
+        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+            if (available.y >= 0f || range <= 0f || !canFold()) return Offset.Zero
+            // Half of each scroll folds the card and the rest scrolls the page, so the fold is
+            // spread over twice the distance while the page still keeps up with the finger.
+            val take = minOf(-available.y * FOLD_SHARE, range - offsets[page]).coerceAtLeast(0f)
+            offsets[page] += take
+            return Offset(0f, -take)
+        }
+
+        override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+            if (available.y <= 0f || offsets[page] <= 0f) return Offset.Zero
+            val give = minOf(available.y, offsets[page])
+            offsets[page] -= give
+            return Offset(0f, give)
+        }
+
+        override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+            val offset = offsets[page]
+            if (offset > 0f && offset < range) settleTo(page, if (offset / range > 0.5f) range else 0f)
+            return Velocity.Zero
+        }
+    }
+
+    suspend fun expand() = settleTo(page, 0f)
+
+    private suspend fun settleTo(page: Int, target: Float) {
+        // Unhurried and without bounce, so letting go part-way glides rather than snaps.
+        animate(offsets[page], target, animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessVeryLow)) { value, _ ->
+            offsets[page] = value
+        }
+    }
+}
+
+/**
+ * Your Fitbit Air is reachable as far as the phone can tell, and how the last buzz went. As the
+ * page scrolls it folds into a chip with just the name, status and battery, its height following
+ * [collapse]; a tap on the chip scrolls back up and opens it again.
+ */
 @Composable
-private fun BandStatusCard(latest: ActivityEntry?, battery: BandBattery?, checkingBattery: Boolean) {
+private fun BandStatusCard(
+    latest: ActivityEntry?,
+    battery: BandBattery?,
+    checkingBattery: Boolean,
+    collapse: StatusCollapse,
+    pagerPosition: () -> Float,
+    onExpand: () -> Unit
+) {
+    Layout(
+        content = {
+            BandStatusFull(latest, battery, checkingBattery)
+            BandStatusChip(latest, battery, checkingBattery, onExpand)
+        },
+        modifier = Modifier.clipToBounds()
+    ) { measurables, constraints ->
+        val loose = constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity)
+        val full = measurables[0].measure(loose)
+        val chip = measurables[1].measure(loose)
+        collapse.range = (full.height - chip.height).coerceAtLeast(0).toFloat()
+        val p = collapse.progressAt(pagerPosition())
+        val height = (full.height + (chip.height - full.height) * p).roundToInt()
+        layout(full.width, height) {
+            // Overlapping fades, eased, so the two read as one card changing shape: the card's
+            // detail goes in the first two thirds while the slim row comes in over the last two.
+            val cardAlpha = FastOutSlowInEasing.transform((1f - p * 1.5f).coerceIn(0f, 1f))
+            val rowAlpha = FastOutSlowInEasing.transform(((p - 1f / 3f) * 1.5f).coerceIn(0f, 1f))
+            full.placeWithLayer(0, 0) { alpha = cardAlpha }
+            chip.placeWithLayer(0, 0) { alpha = rowAlpha }
+        }
+    }
+}
+
+@Composable
+private fun BandStatusFull(latest: ActivityEntry?, battery: BandBattery?, checkingBattery: Boolean) {
     val context = LocalContext.current
     val title = stringResource(R.string.band_title)
     val status = stringResource(R.string.band_status_ready)
@@ -443,11 +589,72 @@ private fun BandStatusCard(latest: ActivityEntry?, battery: BandBattery?, checki
 }
 
 /**
+ * The card folded down to one slim row: the same width, shape and colours as the card, so folding
+ * reads as the card shrinking rather than being swapped for something else.
+ */
+@Composable
+private fun BandStatusChip(latest: ActivityEntry?, battery: BandBattery?, checkingBattery: Boolean, onExpand: () -> Unit) {
+    val ok = latest == null || latest.buzzed
+    // The same colours as the card it folds from.
+    val accent = if (ok) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    val container = if (ok) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f) else MaterialTheme.colorScheme.surfaceVariant
+    val content = if (ok) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+    Surface(
+        onClick = onExpand,
+        modifier = Modifier.fillMaxWidth(),
+        shape = AirAlertsShapes.CardShape,
+        color = container,
+        contentColor = content
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(MaterialShapes.Cookie9Sided.toShape())
+                    .background(accent.copy(alpha = 0.18f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Rounded.Watch, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
+            }
+            Text(
+                text = stringResource(R.string.band_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                modifier = Modifier.weight(1f)
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(7.dp)
+                        .clip(CircleShape)
+                        .background(accent)
+                )
+                Text(
+                    text = stringResource(R.string.band_status_ready),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = accent,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            if (battery != null || checkingBattery) BatteryBadge(battery, checkingBattery, compact = true)
+        }
+    }
+}
+
+/**
  * The band's battery in the card header. Read when Home opens, so it's current; one older than
  * [STALE_BATTERY_MS] (the last check failed) is shown faded and read out with its time.
  */
 @Composable
-private fun BatteryBadge(battery: BandBattery?, checking: Boolean) {
+private fun BatteryBadge(battery: BandBattery?, checking: Boolean, compact: Boolean = false) {
     val context = LocalContext.current
     val stale = battery != null && System.currentTimeMillis() - battery.atMillis > STALE_BATTERY_MS
     val description = when {
@@ -469,14 +676,14 @@ private fun BatteryBadge(battery: BandBattery?, checking: Boolean) {
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         if (checking) {
-            LoadingIndicator(modifier = Modifier.size(24.dp), color = LocalContentColor.current)
+            LoadingIndicator(modifier = Modifier.size(if (compact) 18.dp else 24.dp), color = LocalContentColor.current)
         } else if (battery != null) {
-            Icon(batteryIcon(battery), contentDescription = null, modifier = Modifier.size(20.dp))
+            Icon(batteryIcon(battery), contentDescription = null, modifier = Modifier.size(if (compact) 16.dp else 20.dp))
         }
         if (battery != null) {
             Text(
                 text = stringResource(R.string.battery_percent, battery.percent),
-                style = MaterialTheme.typography.titleMedium,
+                style = if (compact) MaterialTheme.typography.labelLarge else MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -498,6 +705,9 @@ private fun batteryIcon(battery: BandBattery): ImageVector = when {
 }
 
 private const val STALE_BATTERY_MS = 10 * 60_000L
+
+/** The part of a downward scroll the status card takes while it folds. */
+private const val FOLD_SHARE = 0.5f
 
 // Previews
 
