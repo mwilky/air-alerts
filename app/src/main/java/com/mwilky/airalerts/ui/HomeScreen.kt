@@ -29,6 +29,10 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -40,6 +44,7 @@ import com.mwilky.airalerts.AlertListener
 import com.mwilky.airalerts.AlertSettings
 import com.mwilky.airalerts.R
 import com.mwilky.airalerts.band.AirBand
+import com.mwilky.airalerts.band.BandBattery
 
 /** What the phone allows right now; read again whenever the screen resumes. */
 data class Environment(
@@ -150,6 +155,12 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
         refresh++
     }
 
+    // Google Health has the band otherwise, so read the battery each time Home opens.
+    LifecycleResumeEffect(environment.canBuzz) {
+        if (environment.canBuzz) viewModel.checkBattery()
+        onPauseOrDispose { }
+    }
+
     HomeContent(
         state = state,
         environment = environment,
@@ -191,7 +202,7 @@ fun HomeContent(
     PageScaffold(title = stringResource(R.string.app_name)) {
         ProblemCard(environment, state.settings, onAllowNearby, onOpenAppSettings, onTurnOnBluetooth, onOpenGoogleHealth, onAllowNotificationAccess)
         // A Bluetooth, Nearby devices or pairing problem above takes this card's place.
-        if (environment.canBuzz) BandStatusCard(state.activity.firstOrNull())
+        if (environment.canBuzz) BandStatusCard(state.activity.firstOrNull(), state.battery, state.checkingBattery)
 
         SectionHero(
             title = stringResource(R.string.hero_title),
@@ -300,21 +311,24 @@ private fun ProblemCard(
 
 /** Your Fitbit Air is reachable as far as the phone can tell, and how the last buzz went. */
 @Composable
-private fun BandStatusCard(latest: ActivityEntry?) {
+private fun BandStatusCard(latest: ActivityEntry?, battery: BandBattery?, checkingBattery: Boolean) {
     val context = LocalContext.current
     val title = stringResource(R.string.band_title)
     val status = stringResource(R.string.band_status_ready)
+    val trailing: (@Composable () -> Unit)? =
+        if (battery != null || checkingBattery) ({ BatteryBadge(battery, checkingBattery) }) else null
     if (latest == null || latest.buzzed) {
         StandardDiagnosticCard(
             title = title,
             subtitle = if (latest == null) {
                 stringResource(R.string.home_band_never_buzzed)
             } else {
-                stringResource(R.string.band_last_buzz, clockTime(context, latest.atMillis), seconds(latest.tookMillis!!))
+                stringResource(R.string.band_last_buzz, clockTime(context, latest.atMillis))
             },
             icon = Icons.Rounded.Watch,
             statusText = status,
-            isOk = true
+            isOk = true,
+            trailing = trailing
         )
     } else {
         // A missed buzz is often Google Health busy with the band, so neutral rather than red.
@@ -325,10 +339,68 @@ private fun BandStatusCard(latest: ActivityEntry?) {
             statusText = status,
             accentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            trailing = trailing
         )
     }
 }
+
+/**
+ * The band's battery in the card header. Read when Home opens, so it's current; one older than
+ * [STALE_BATTERY_MS] (the last check failed) is shown faded and read out with its time.
+ */
+@Composable
+private fun BatteryBadge(battery: BandBattery?, checking: Boolean) {
+    val context = LocalContext.current
+    val stale = battery != null && System.currentTimeMillis() - battery.atMillis > STALE_BATTERY_MS
+    val description = when {
+        checking -> stringResource(R.string.band_battery_checking)
+        battery == null -> ""
+        stale -> stringResource(
+            if (battery.charging) R.string.band_battery_charging else R.string.band_battery,
+            battery.percent,
+            clockTime(context, battery.atMillis)
+        )
+        battery.charging -> stringResource(R.string.band_battery_now_charging, battery.percent)
+        else -> stringResource(R.string.band_battery_now, battery.percent)
+    }
+    Row(
+        modifier = Modifier
+            .alpha(if (stale && !checking) 0.6f else 1f)
+            .clearAndSetSemantics { contentDescription = description },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        if (checking) {
+            LoadingIndicator(modifier = Modifier.size(24.dp), color = LocalContentColor.current)
+        } else if (battery != null) {
+            Icon(batteryIcon(battery), contentDescription = null, modifier = Modifier.size(20.dp))
+        }
+        if (battery != null) {
+            Text(
+                text = stringResource(R.string.battery_percent, battery.percent),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+private fun batteryIcon(battery: BandBattery): ImageVector = when {
+    battery.charging -> Icons.Rounded.BatteryChargingFull
+    battery.percent >= 95 -> Icons.Rounded.BatteryFull
+    else -> listOf(
+        Icons.Rounded.Battery0Bar,
+        Icons.Rounded.Battery1Bar,
+        Icons.Rounded.Battery2Bar,
+        Icons.Rounded.Battery3Bar,
+        Icons.Rounded.Battery4Bar,
+        Icons.Rounded.Battery5Bar,
+        Icons.Rounded.Battery6Bar
+    )[(battery.percent * 7 / 100).coerceIn(0, 6)]
+}
+
+private const val STALE_BATTERY_MS = 10 * 60_000L
 
 // Previews
 
@@ -356,7 +428,8 @@ fun HomeScreenPreviewOn() {
     PreviewHome(
         HomeUiState(
             settings = AlertSettings(enabled = true),
-            activity = listOf(ActivityEntry(atMillis = 1_763_900_000_000, kind = AlertKind.NOTIFICATION, appName = "WhatsApp", tookMillis = 2_800))
+            activity = listOf(ActivityEntry(atMillis = 1_763_900_000_000, kind = AlertKind.NOTIFICATION, appName = "WhatsApp", tookMillis = 2_800)),
+            battery = BandBattery(percent = 55, charging = false, atMillis = 1_763_900_000_000)
         )
     )
 }

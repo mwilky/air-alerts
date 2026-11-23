@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,6 +28,7 @@ fun StandardDiagnosticCard(
     statusText: String,
     isOk: Boolean,
     modifier: Modifier = Modifier,
+    trailing: (@Composable () -> Unit)? = null,
     bottomAction: (@Composable () -> Unit)? = null
 ) {
     val accentColor = if (isOk) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
@@ -50,6 +52,7 @@ fun StandardDiagnosticCard(
         containerColor = containerColor,
         contentColor = contentColor,
         modifier = modifier,
+        trailing = trailing,
         bottomAction = bottomAction
     )
 }
@@ -64,6 +67,7 @@ fun ExpressiveStatusCard(
     containerColor: Color,
     contentColor: Color,
     modifier: Modifier = Modifier,
+    trailing: (@Composable () -> Unit)? = null,
     bottomAction: (@Composable () -> Unit)? = null
 ) {
     Card(
@@ -133,6 +137,10 @@ fun ExpressiveStatusCard(
                             }
                         }
                     }
+                }
+
+                if (trailing != null) {
+                    CompositionLocalProvider(LocalContentColor provides contentColor) { trailing() }
                 }
             }
 

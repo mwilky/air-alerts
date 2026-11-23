@@ -10,6 +10,7 @@ internal object Coap {
     const val TYPE_ACK = 2
     const val TYPE_RST = 3
 
+    const val GET = 1
     const val POST = 2
     const val PUT = 3
 

@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.mwilky.airalerts.band.BandBattery
 import com.mwilky.airalerts.band.BuzzError
 import com.mwilky.airalerts.band.BuzzFailure
 import com.mwilky.airalerts.band.BuzzRun
@@ -38,7 +39,7 @@ data class ActivityEntry(
 
 private val Context.dataStore by preferencesDataStore("alerts")
 
-/** Settings, the recent activity list and the steps of the last buzz, kept across restarts. */
+/** Settings, the recent activity list, the steps of the last buzz and the band's battery, kept across restarts. */
 class AlertStore(private val context: Context) {
     val settings: Flow<AlertSettings> = context.dataStore.data.map { p ->
         AlertSettings(
@@ -52,6 +53,15 @@ class AlertStore(private val context: Context) {
 
     val lastRun: Flow<BuzzRun?> = context.dataStore.data.map { p -> decodeRun(p[LAST_RUN]) }
 
+    val battery: Flow<BandBattery?> = context.dataStore.data.map { p ->
+        p[BATTERY]?.let { json ->
+            runCatching {
+                val o = JSONObject(json)
+                BandBattery(percent = o.getInt("percent"), charging = o.getBoolean("charging"), atMillis = o.getLong("at"))
+            }.getOrNull()
+        }
+    }
+
     suspend fun currentSettings() = settings.first()
 
     suspend fun setEnabled(value: Boolean) = context.dataStore.edit { it[ENABLED] = value }
@@ -63,6 +73,14 @@ class AlertStore(private val context: Context) {
     }
 
     suspend fun setLastRun(run: BuzzRun) = context.dataStore.edit { it[LAST_RUN] = encodeRun(run) }
+
+    suspend fun setBattery(battery: BandBattery) = context.dataStore.edit {
+        it[BATTERY] = JSONObject()
+            .put("percent", battery.percent)
+            .put("charging", battery.charging)
+            .put("at", battery.atMillis)
+            .toString()
+    }
 
     private fun encodeRun(run: BuzzRun): String = JSONObject().apply {
         put("at", run.startedAtMillis)
@@ -149,6 +167,7 @@ class AlertStore(private val context: Context) {
         val NOTIFICATIONS = booleanPreferencesKey("notifications")
         val ACTIVITY = stringPreferencesKey("activity")
         val LAST_RUN = stringPreferencesKey("last_run")
+        val BATTERY = stringPreferencesKey("battery")
         const val MAX_ACTIVITY = 30
     }
 }

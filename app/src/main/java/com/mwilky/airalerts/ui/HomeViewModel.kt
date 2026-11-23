@@ -8,6 +8,7 @@ import com.mwilky.airalerts.AirAlertsApp
 import com.mwilky.airalerts.AlertBuzzer
 import com.mwilky.airalerts.AlertKind
 import com.mwilky.airalerts.AlertSettings
+import com.mwilky.airalerts.band.BandBattery
 import com.mwilky.airalerts.band.BuzzRun
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +20,9 @@ data class HomeUiState(
     val settings: AlertSettings = AlertSettings(),
     val busy: Boolean = false,
     val lastRun: BuzzRun? = null,
-    val activity: List<ActivityEntry> = emptyList()
+    val activity: List<ActivityEntry> = emptyList(),
+    val battery: BandBattery? = null,
+    val checkingBattery: Boolean = false
 )
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
@@ -34,7 +37,19 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     ) { settings, busy, liveRun, savedRun, activity ->
         // The live run until the app restarts, then the one saved when it finished.
         HomeUiState(settings, busy, liveRun ?: savedRun, activity)
+    }.combine(app.store.battery) { state, battery ->
+        state.copy(battery = battery)
+    }.combine(app.band.checkingBattery) { state, checking ->
+        state.copy(checkingBattery = checking)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
+
+    /** On the app's scope, so leaving the screen doesn't cut the band session short. */
+    fun checkBattery() {
+        app.scope.launch {
+            app.band.checkBattery()
+            app.band.battery.value?.let { app.store.setBattery(it) }
+        }
+    }
 
     fun testBuzz() = app.buzzer.request(AlertBuzzer.Trigger(AlertKind.TEST))
 

@@ -8,8 +8,14 @@
     <!-- Band card -->
     <string name="band_title">Google Fitbit Air</string>
     <string name="band_status_ready">Ready</string>
-    <string name="band_last_buzz">Last buzz at %1$s. It took %2$s s.</string>
+    <string name="band_last_buzz">Last buzz at %1$s.</string>
     <string name="band_last_failed">Last try at %1$s failed. %2$s</string>
+    <string name="band_battery">Battery was %1$d%% at %2$s.</string>
+    <string name="band_battery_charging">Battery was %1$d%% at %2$s, on charge.</string>
+    <string name="band_battery_now">Battery is at %1$d%%.</string>
+    <string name="band_battery_now_charging">Battery is at %1$d%%, on charge.</string>
+    <string name="band_battery_checking">Checking battery&#8230;</string>
+    <string name="battery_percent">%1$d%%</string>
     <string name="band_test_btn">Test buzz</string>
     <string name="band_test_running">Buzzing&#8230;</string>
     <string name="band_blocked_hint">Something is stopping buzzes. Fix it on the Home tab.</string>

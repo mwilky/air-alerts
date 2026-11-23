@@ -59,7 +59,8 @@ sealed interface BuzzResult {
 
 /**
  * Makes a Fitbit Air buzz once: Bluetooth link → Gattlink → IPv4/UDP → DTLS (bootstrap key) →
- * CoAP `/settings`, then hands the channel back to Google Health.
+ * CoAP `/settings`, then hands the channel back to Google Health. Each session also reads the band's
+ * battery, and [checkBattery] borrows the channel just for that.
  *
  * The band has a single channel shared by every app on the link, so whatever happens (success,
  * failure, timeout or cancellation) the channel is handed back and our client closed before
@@ -76,6 +77,17 @@ class AirBand(private val context: Context) {
     private val _run = MutableStateFlow<BuzzRun?>(null)
     val lastRun: StateFlow<BuzzRun?> = _run.asStateFlow()
 
+    private val _battery = MutableStateFlow<BandBattery?>(null)
+
+    /** The battery as last read, by a buzz or [checkBattery]. */
+    val battery: StateFlow<BandBattery?> = _battery.asStateFlow()
+
+    private val _checkingBattery = MutableStateFlow(false)
+    val checkingBattery: StateFlow<Boolean> = _checkingBattery.asStateFlow()
+
+    @Volatile
+    private var lastBatteryCheck = 0L
+
     private val _busy = MutableStateFlow(false)
     val busy: StateFlow<Boolean> = _busy.asStateFlow()
 
@@ -86,6 +98,27 @@ class AirBand(private val context: Context) {
             Session(repeatWhile).run()
         } finally {
             _busy.value = false
+        }
+    }
+
+    /**
+     * Borrows the channel just to read the battery: Google Health has it the rest of the time, and
+     * the band has no Battery Service anyone can read. Skipped while a buzz runs (it reads the
+     * battery too) and within [BATTERY_CHECK_GAP_MS] of the last check, so switching screens doesn't
+     * keep taking the band.
+     */
+    suspend fun checkBattery() {
+        if (mutex.isLocked) return
+        val now = SystemClock.elapsedRealtime()
+        if (lastBatteryCheck != 0L && now - lastBatteryCheck < BATTERY_CHECK_GAP_MS) return
+        lastBatteryCheck = now
+        mutex.withLock {
+            _checkingBattery.value = true
+            try {
+                Session(repeatWhile = null, buzz = false).run()
+            } finally {
+                _checkingBattery.value = false
+            }
         }
     }
 
@@ -102,8 +135,11 @@ class AirBand(private val context: Context) {
 
     fun bluetoothOn() = context.getSystemService(BluetoothManager::class.java)?.adapter?.isEnabled == true
 
-    /** One attempt. All link-side state lives on [handler]'s thread. */
-    private inner class Session(private val repeatWhile: StateFlow<Boolean>?) {
+    /**
+     * One attempt. All link-side state lives on [handler]'s thread. Without [buzz] it only reads the
+     * battery, and its steps stay out of the Last buzz list.
+     */
+    private inner class Session(private val repeatWhile: StateFlow<Boolean>?, private val buzz: Boolean = true) {
         private val start = SystemClock.elapsedRealtime()
         private var stepStart = start
         private var link: AirLink? = null
@@ -127,9 +163,10 @@ class AirBand(private val context: Context) {
         private var lastSessionReady = 0L
         private val bandReset = CompletableDeferred<Unit>()
         private val disconnected = CompletableDeferred<Unit>()
+        private var run = BuzzRun(startedAtMillis = System.currentTimeMillis())
 
         suspend fun run(): BuzzResult {
-            _run.value = BuzzRun(startedAtMillis = System.currentTimeMillis())
+            if (buzz) _run.value = run
             var buzzedAt: Long? = null
             var tookChannel = false
             try {
@@ -148,14 +185,17 @@ class AirBand(private val context: Context) {
                 done(BuzzStep.SECURE)
                 onLink { link?.requestFast() }
 
-                begin(BuzzStep.BUZZ)
                 val coap = CoapChannel(dtls)
-                val strength = blocking { readStrength(coap) }
-                blocking { sendBuzz(coap, strength) }
-                buzzedAt = SystemClock.elapsedRealtime()
-                done(BuzzStep.BUZZ)
-                repeatWhile?.let { ringBuzz(coap, strength, it) }
-                keepStrength(coap, strength)
+                if (buzz) {
+                    begin(BuzzStep.BUZZ)
+                    val strength = blocking { readStrength(coap) }
+                    blocking { sendBuzz(coap, strength) }
+                    buzzedAt = SystemClock.elapsedRealtime()
+                    done(BuzzStep.BUZZ)
+                    repeatWhile?.let { ringBuzz(coap, strength, it) }
+                    keepStrength(coap, strength)
+                }
+                readBattery(coap)
             } catch (e: BandException) {
                 Log.w(TAG, "buzz failed: ${e.error} ${e.detail.orEmpty()}")
                 fail(BuzzFailure(e.error, e.detail))
@@ -179,7 +219,7 @@ class AirBand(private val context: Context) {
             return if (took != null) {
                 BuzzResult.Buzzed(took)
             } else {
-                val failure = _run.value?.steps?.values?.filterIsInstance<StepState.Failed>()?.firstOrNull()?.failure
+                val failure = run.steps.values.filterIsInstance<StepState.Failed>().firstOrNull()?.failure
                 BuzzResult.Missed(failure ?: BuzzFailure(BuzzError.UNEXPECTED))
             }
         }
@@ -376,6 +416,24 @@ class AirBand(private val context: Context) {
             }
         }
 
+        /** Reads the battery, after any buzz so it never delays one. Never fails the attempt. */
+        private suspend fun readBattery(coap: CoapChannel) {
+            try {
+                val reply = blocking { coap.exchange(Coap.GET, ByteArray(0), AirBattery.PATH) }
+                val battery = AirBattery.parse(reply.payload, System.currentTimeMillis())
+                if (battery == null) {
+                    Log.w(TAG, "battery ${reply.codeText} ${reply.payload.hex()}")
+                    return
+                }
+                Log.d(TAG, "battery ${battery.percent}%${if (battery.charging) ", charging" else ""}")
+                _battery.value = battery
+            } catch (e: BandException) {
+                Log.w(TAG, "couldn't read battery: ${e.detail.orEmpty()}")
+            } catch (e: IOException) {
+                Log.w(TAG, "couldn't read battery", e)
+            }
+        }
+
         private suspend fun <T> blocking(block: () -> T): T = withContext(Dispatchers.IO) { runInterruptible { block() } }
 
         /**
@@ -426,12 +484,13 @@ class AirBand(private val context: Context) {
 
         /** Marks the step that was running as failed. */
         private fun fail(failure: BuzzFailure) {
-            val running = _run.value?.steps?.entries?.firstOrNull { it.value == StepState.Running }?.key ?: return
+            val running = run.steps.entries.firstOrNull { it.value == StepState.Running }?.key ?: return
             set(running, StepState.Failed(failure))
         }
 
         private fun set(step: BuzzStep, state: StepState) {
-            _run.update { run -> run?.copy(steps = run.steps + (step to state)) }
+            run = run.copy(steps = run.steps + (step to state))
+            if (buzz) _run.value = run
         }
     }
 
@@ -439,10 +498,10 @@ class AirBand(private val context: Context) {
     private class CoapChannel(private val dtls: DTLSTransport) {
         private var messageId = Random.nextInt(0x10000)
 
-        fun exchange(method: Int, body: ByteArray): Coap.Message {
+        fun exchange(method: Int, body: ByteArray, path: String = AirHaptics.PATH): Coap.Message {
             messageId = (messageId + 1) and 0xFFFF
             val token = Random.nextBytes(4)
-            val request = Coap.request(method, AirHaptics.PATH, messageId, token, body)
+            val request = Coap.request(method, path, messageId, token, body)
             val buffer = ByteArray(dtls.receiveLimit)
             repeat(COAP_TRIES) {
                 dtls.send(request, 0, request.size)
@@ -470,7 +529,12 @@ class AirBand(private val context: Context) {
                     if (message.code != 0) return message
                 }
             }
-            throw BandException(BuzzError.NO_ANSWER, "no reply to ${if (method == Coap.POST) "POST" else "PUT"} ${AirHaptics.PATH}")
+            val name = when (method) {
+                Coap.GET -> "GET"
+                Coap.POST -> "POST"
+                else -> "PUT"
+            }
+            throw BandException(BuzzError.NO_ANSWER, "no reply to $name $path")
         }
     }
 
@@ -488,6 +552,9 @@ class AirBand(private val context: Context) {
 
         /** Gap between buzzes while a call rings. 2 s worked on the band but felt too slow. */
         const val RING_GAP_MS = 1_000L
+
+        /** At most one battery-only check this often. */
+        const val BATTERY_CHECK_GAP_MS = 60_000L
 
         /** Calls usually go to voicemail before this; stops a stuck notification buzzing forever. */
         const val RING_MAX_MS = 60_000L
