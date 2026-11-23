@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.mwilky.airalerts.band.BandBattery
@@ -29,8 +30,37 @@ data class AlertSettings(
     val notifFavourites: Boolean = false,
     val notifOthers: Boolean = true,
     val senderRules: List<ContactRule> = emptyList(),
-    val appRules: List<AppRule> = emptyList()
-)
+    val appRules: List<AppRule> = emptyList(),
+    /** The Conditions tab. Do Not Disturb starts on: what it silences on the phone doesn't buzz. */
+    val dndQuiet: Boolean = true,
+    val quietHours: Boolean = false,
+    val quietStart: Int = 22 * 60,
+    val quietEnd: Int = 7 * 60,
+    val quietSchedule: QuietHoursSchedule = QuietHoursSchedule(),
+    /** Each default row's own Do Not Disturb and quiet hours settings. */
+    val callFavouritesWhen: RuleConditions = RuleConditions(),
+    val callContactsWhen: RuleConditions = RuleConditions(),
+    val callUnknownWhen: RuleConditions = RuleConditions(),
+    val notifFavouritesWhen: RuleConditions = RuleConditions(),
+    val notifOthersWhen: RuleConditions = RuleConditions()
+) {
+    fun conditionsOf(row: DefaultRow): RuleConditions = when (row) {
+        DefaultRow.CALL_FAVOURITES -> callFavouritesWhen
+        DefaultRow.CALL_CONTACTS -> callContactsWhen
+        DefaultRow.CALL_UNKNOWN -> callUnknownWhen
+        DefaultRow.NOTIF_FAVOURITES -> notifFavouritesWhen
+        DefaultRow.NOTIF_OTHERS -> notifOthersWhen
+    }
+}
+
+/** The fixed rows on the Calls and Notifications pages, each with its own conditions. */
+enum class DefaultRow(internal val key: String) {
+    CALL_FAVOURITES("call_favourites_when"),
+    CALL_CONTACTS("call_contacts_when"),
+    CALL_UNKNOWN("call_unknown_when"),
+    NOTIF_FAVOURITES("notif_favourites_when"),
+    NOTIF_OTHERS("notif_others_when")
+}
 
 enum class AlertKind { TEST, CALL, NOTIFICATION }
 
@@ -63,9 +93,21 @@ class AlertStore(private val context: Context) {
             notifFavourites = p[NOTIF_FAVOURITES] ?: false,
             notifOthers = p[NOTIF_OTHERS] ?: true,
             senderRules = RuleJson.decodeContacts(p[SENDER_RULES]),
-            appRules = RuleJson.decodeApps(p[APP_RULES])
+            appRules = RuleJson.decodeApps(p[APP_RULES]),
+            dndQuiet = p[DND_QUIET] ?: true,
+            quietHours = p[QUIET_HOURS] ?: false,
+            quietStart = p[QUIET_START] ?: 22 * 60,
+            quietEnd = p[QUIET_END] ?: 7 * 60,
+            quietSchedule = QuietHoursSchedule.fromJson(p[QUIET_SCHEDULE]),
+            callFavouritesWhen = conditions(p, DefaultRow.CALL_FAVOURITES),
+            callContactsWhen = conditions(p, DefaultRow.CALL_CONTACTS),
+            callUnknownWhen = conditions(p, DefaultRow.CALL_UNKNOWN),
+            notifFavouritesWhen = conditions(p, DefaultRow.NOTIF_FAVOURITES),
+            notifOthersWhen = conditions(p, DefaultRow.NOTIF_OTHERS)
         )
     }
+
+    private fun conditions(p: Preferences, row: DefaultRow) = RuleConditions.fromJson(p[stringPreferencesKey(row.key)])
 
     val activity: Flow<List<ActivityEntry>> = context.dataStore.data.map { p -> decode(p[ACTIVITY]) }
 
@@ -100,6 +142,26 @@ class AlertStore(private val context: Context) {
     suspend fun setCallUnknown(value: Boolean) = context.dataStore.edit { it[CALL_UNKNOWN] = value }
     suspend fun setNotifFavourites(value: Boolean) = context.dataStore.edit { it[NOTIF_FAVOURITES] = value }
     suspend fun setNotifOthers(value: Boolean) = context.dataStore.edit { it[NOTIF_OTHERS] = value }
+
+    suspend fun setDndQuiet(value: Boolean) = context.dataStore.edit { it[DND_QUIET] = value }
+    suspend fun setQuietHours(value: Boolean) = context.dataStore.edit { it[QUIET_HOURS] = value }
+
+    /** Every day's window, or the weekdays' when weekends differ. */
+    suspend fun setQuietWindow(start: Int, end: Int) = context.dataStore.edit {
+        it[QUIET_START] = start
+        it[QUIET_END] = end
+    }
+
+    suspend fun setQuietRepeat(repeat: QuietHoursRepeat) = editSchedule { it.copy(repeat = repeat) }
+    suspend fun setQuietWeekend(start: Int, end: Int) = editSchedule { it.copy(weekend = QuietWindow(start, end)) }
+    suspend fun setQuietDay(day: java.time.DayOfWeek, window: QuietWindow) = editSchedule { it.copy(days = it.days + (day to window)) }
+
+    suspend fun setRowConditions(row: DefaultRow, conditions: RuleConditions) =
+        context.dataStore.edit { it[stringPreferencesKey(row.key)] = conditions.toJson().toString() }
+
+    private suspend fun editSchedule(change: (QuietHoursSchedule) -> QuietHoursSchedule) = context.dataStore.edit { p ->
+        p[QUIET_SCHEDULE] = change(QuietHoursSchedule.fromJson(p[QUIET_SCHEDULE])).toJson().toString()
+    }
 
     /** Replaces the rule with the same id or name (one rule per contact), else adds it. */
     suspend fun saveCallerRule(rule: ContactRule) = editContacts(CALLER_RULES) { upsert(it, rule) }
@@ -233,6 +295,11 @@ class AlertStore(private val context: Context) {
         val NOTIF_OTHERS = booleanPreferencesKey("notif_others")
         val SENDER_RULES = stringPreferencesKey("sender_rules")
         val APP_RULES = stringPreferencesKey("app_rules")
+        val DND_QUIET = booleanPreferencesKey("dnd_quiet")
+        val QUIET_HOURS = booleanPreferencesKey("quiet_hours")
+        val QUIET_START = intPreferencesKey("quiet_start")
+        val QUIET_END = intPreferencesKey("quiet_end")
+        val QUIET_SCHEDULE = stringPreferencesKey("quiet_schedule")
         val ACTIVITY = stringPreferencesKey("activity")
         val LAST_RUN = stringPreferencesKey("last_run")
         val BATTERY = stringPreferencesKey("battery")

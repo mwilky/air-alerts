@@ -15,15 +15,21 @@ CALLS
 
 NOTIFICATIONS
 • One buzz for each notification that makes a sound or vibrates your phone
-• Silent notifications, ongoing ones such as music and downloads, and anything Do Not Disturb hides don't buzz
+• Silent notifications and ongoing ones such as music and downloads don't buzz
 • A burst of messages shares a buzz, so your wrist isn't buzzing over and over
 • Favourite contacts always buzz, whatever the app
 • Contact rules, matched by the sender's name in any app
 • App rules: set any app to buzz or stay quiet
 • One switch for everything your rules don't cover
 
+CONDITIONS
+• Do Not Disturb: anything it silences on your phone doesn't buzz your Fitbit Air. People and apps it lets through still buzz
+• Quiet hours: nothing buzzes between the times you set, overnight if you like
+• Quiet hours can be the same every day, differ at weekends or be set for each day
+• Tap any rule to give it its own conditions: always buzz, stay quiet whenever Do Not Disturb is on, or stay quiet during its own hours
+
 AT A GLANCE
-• Home shows that your Fitbit Air is ready, when it last buzzed and its battery level
+• A chip on Home shows your Fitbit Air's state and battery level. Tap it for when it last buzzed and a Test buzz button
 • Calls and Notifications each have their own on/off switch
 • The Buzzes tab has a Test buzz button, each step of the last buzz with how long it took, and a list of recent buzzes and misses with the reason for a miss
 

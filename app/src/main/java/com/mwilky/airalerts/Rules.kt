@@ -3,44 +3,76 @@ package com.mwilky.airalerts
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** A caller, or a message sender, matched by the name the notification shows. [buzz] false keeps it quiet. */
-data class ContactRule(val id: String, val name: String, val buzz: Boolean = true)
+/**
+ * A caller, or a message sender, matched by the name the notification shows. [buzz] false keeps it
+ * quiet; [conditions] are its own Do Not Disturb and quiet hours settings.
+ */
+data class ContactRule(
+    val id: String,
+    val name: String,
+    val buzz: Boolean = true,
+    val conditions: RuleConditions = RuleConditions()
+)
 
 /** One app's notifications. [buzz] false keeps them quiet. */
-data class AppRule(val packageName: String, val appName: String, val buzz: Boolean = true)
+data class AppRule(
+    val packageName: String,
+    val appName: String,
+    val buzz: Boolean = true,
+    val conditions: RuleConditions = RuleConditions()
+)
+
+/** The rule or default row a call or notification fell to: whether it buzzes, and its conditions. */
+data class RuleMatchResult(val buzz: Boolean, val conditions: RuleConditions)
 
 /**
  * Which calls and notifications buzz. Each page's default rows apply when no custom rule matches,
- * in this order: custom rule, then favourites, then the catch-all rows.
+ * in this order: custom rule, then favourites, then the catch-all rows. Whichever matches also
+ * supplies the Do Not Disturb and quiet hours settings (see [conditionsBlock]).
  */
 internal object RuleMatch {
     /**
      * [isFavourite] and [isSaved] look the caller up in Contacts; [isSaved] is null when the app
      * can't read Contacts.
      */
-    fun callBuzzes(
+    fun callMatch(
         settings: AlertSettings,
         caller: String,
         isFavourite: (String) -> Boolean,
         isSaved: (String) -> Boolean?
-    ): Boolean {
-        nameMatch(caller, settings.callerRules)?.let { return it.buzz }
-        if (settings.callFavourites && caller.isNotBlank() && isFavourite(caller)) return true
+    ): RuleMatchResult {
+        nameMatch(caller, settings.callerRules)?.let { return RuleMatchResult(it.buzz, it.conditions) }
+        if (settings.callFavourites && caller.isNotBlank() && isFavourite(caller)) {
+            return RuleMatchResult(true, settings.callFavouritesWhen)
+        }
         val saved = isSaved(caller) ?: !looksLikeNumber(caller)
-        return if (saved) settings.callContacts else settings.callUnknown
+        return if (saved) {
+            RuleMatchResult(settings.callContacts, settings.callContactsWhen)
+        } else {
+            RuleMatchResult(settings.callUnknown, settings.callUnknownWhen)
+        }
     }
 
-    fun notificationBuzzes(
+    fun notificationMatch(
         settings: AlertSettings,
         packageName: String,
         sender: String,
         isFavourite: (String) -> Boolean
-    ): Boolean {
-        nameMatch(sender, settings.senderRules)?.let { return it.buzz }
-        if (settings.notifFavourites && sender.isNotBlank() && isFavourite(sender)) return true
-        settings.appRules.firstOrNull { it.packageName.equals(packageName, ignoreCase = true) }?.let { return it.buzz }
-        return settings.notifOthers
+    ): RuleMatchResult {
+        nameMatch(sender, settings.senderRules)?.let { return RuleMatchResult(it.buzz, it.conditions) }
+        if (settings.notifFavourites && sender.isNotBlank() && isFavourite(sender)) {
+            return RuleMatchResult(true, settings.notifFavouritesWhen)
+        }
+        settings.appRules.firstOrNull { it.packageName.equals(packageName, ignoreCase = true) }
+            ?.let { return RuleMatchResult(it.buzz, it.conditions) }
+        return RuleMatchResult(settings.notifOthers, settings.notifOthersWhen)
     }
+
+    fun callBuzzes(settings: AlertSettings, caller: String, isFavourite: (String) -> Boolean, isSaved: (String) -> Boolean?) =
+        callMatch(settings, caller, isFavourite, isSaved).buzz
+
+    fun notificationBuzzes(settings: AlertSettings, packageName: String, sender: String, isFavourite: (String) -> Boolean) =
+        notificationMatch(settings, packageName, sender, isFavourite).buzz
 
     /**
      * Without Contacts access, a caller the dialer shows as a number (or nothing) is taken as
@@ -70,20 +102,38 @@ internal object RuleMatch {
 
 internal object RuleJson {
     fun encodeContacts(rules: List<ContactRule>): String = JSONArray().apply {
-        rules.forEach { put(JSONObject().put("id", it.id).put("name", it.name).put("buzz", it.buzz)) }
+        rules.forEach {
+            put(JSONObject().put("id", it.id).put("name", it.name).put("buzz", it.buzz).putConditions(it.conditions))
+        }
     }.toString()
 
     fun decodeContacts(json: String?): List<ContactRule> = decode(json) { o ->
-        ContactRule(id = o.getString("id"), name = o.getString("name"), buzz = o.optBoolean("buzz", true))
+        ContactRule(
+            id = o.getString("id"),
+            name = o.getString("name"),
+            buzz = o.optBoolean("buzz", true),
+            conditions = RuleConditions.fromJson(o.optJSONObject("when"))
+        )
     }
 
     fun encodeApps(rules: List<AppRule>): String = JSONArray().apply {
-        rules.forEach { put(JSONObject().put("package", it.packageName).put("name", it.appName).put("buzz", it.buzz)) }
+        rules.forEach {
+            put(JSONObject().put("package", it.packageName).put("name", it.appName).put("buzz", it.buzz).putConditions(it.conditions))
+        }
     }.toString()
 
     fun decodeApps(json: String?): List<AppRule> = decode(json) { o ->
-        AppRule(packageName = o.getString("package"), appName = o.getString("name"), buzz = o.optBoolean("buzz", true))
+        AppRule(
+            packageName = o.getString("package"),
+            appName = o.getString("name"),
+            buzz = o.optBoolean("buzz", true),
+            conditions = RuleConditions.fromJson(o.optJSONObject("when"))
+        )
     }
+
+    /** Only a rule that overrides the Conditions tab stores its conditions. */
+    private fun JSONObject.putConditions(conditions: RuleConditions): JSONObject =
+        if (conditions == RuleConditions()) this else put("when", conditions.toJson())
 
     /** Skips entries it can't read rather than dropping the whole list. */
     private fun <T> decode(json: String?, read: (JSONObject) -> T): List<T> {

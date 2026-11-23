@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import com.mwilky.airalerts.AlertSettings
 import com.mwilky.airalerts.AppRule
 import com.mwilky.airalerts.ContactRule
+import com.mwilky.airalerts.DefaultRow
 import com.mwilky.airalerts.R
 
 /** Everything the Home pages can ask for, so the page composables take state and lambdas only. */
@@ -71,7 +72,11 @@ data class HomeActions(
     val onAddSender: () -> Unit = {},
     val onSaveAppRule: (AppRule) -> Unit = {},
     val onDeleteAppRule: (AppRule) -> Unit = {},
-    val onAddApp: () -> Unit = {}
+    val onAddApp: () -> Unit = {},
+    val onEditRow: (DefaultRow) -> Unit = {},
+    val onEditCaller: (ContactRule) -> Unit = {},
+    val onEditSender: (ContactRule) -> Unit = {},
+    val onEditApp: (AppRule) -> Unit = {}
 )
 
 /** The Calls page: its switch, the default rows for favourites, contacts and unknown numbers, then caller rules. */
@@ -93,7 +98,9 @@ fun ColumnScope.HomeCallsPage(settings: AlertSettings, actions: HomeActions) {
                     title = stringResource(R.string.calls_fav_title),
                     description = stringResource(R.string.calls_fav_desc),
                     checked = settings.callFavourites,
-                    onCheckedChange = actions.onToggleCallFavourites
+                    onCheckedChange = actions.onToggleCallFavourites,
+                    conditions = settings.conditionsOf(DefaultRow.CALL_FAVOURITES),
+                    onClick = { actions.onEditRow(DefaultRow.CALL_FAVOURITES) }
                 )
                 SwitchRow(
                     index = 1,
@@ -101,7 +108,9 @@ fun ColumnScope.HomeCallsPage(settings: AlertSettings, actions: HomeActions) {
                     title = stringResource(R.string.calls_contacts_title),
                     description = stringResource(R.string.calls_contacts_desc),
                     checked = settings.callContacts,
-                    onCheckedChange = actions.onToggleCallContacts
+                    onCheckedChange = actions.onToggleCallContacts,
+                    conditions = settings.conditionsOf(DefaultRow.CALL_CONTACTS),
+                    onClick = { actions.onEditRow(DefaultRow.CALL_CONTACTS) }
                 )
                 SwitchRow(
                     index = 2,
@@ -109,7 +118,9 @@ fun ColumnScope.HomeCallsPage(settings: AlertSettings, actions: HomeActions) {
                     title = stringResource(R.string.calls_unknown_title),
                     description = stringResource(R.string.calls_unknown_desc),
                     checked = settings.callUnknown,
-                    onCheckedChange = actions.onToggleCallUnknown
+                    onCheckedChange = actions.onToggleCallUnknown,
+                    conditions = settings.conditionsOf(DefaultRow.CALL_UNKNOWN),
+                    onClick = { actions.onEditRow(DefaultRow.CALL_UNKNOWN) }
                 )
             }
             ContactRuleGroup(
@@ -120,6 +131,7 @@ fun ColumnScope.HomeCallsPage(settings: AlertSettings, actions: HomeActions) {
                 addText = stringResource(R.string.calls_add_btn),
                 onSave = actions.onSaveCallerRule,
                 onDelete = actions.onDeleteCallerRule,
+                onEdit = actions.onEditCaller,
                 onAdd = actions.onAddCaller
             )
         }
@@ -145,7 +157,9 @@ fun ColumnScope.HomeNotifsPage(settings: AlertSettings, actions: HomeActions) {
                     title = stringResource(R.string.notifs_fav_title),
                     description = stringResource(R.string.notifs_fav_desc),
                     checked = settings.notifFavourites,
-                    onCheckedChange = actions.onToggleNotifFavourites
+                    onCheckedChange = actions.onToggleNotifFavourites,
+                    conditions = settings.conditionsOf(DefaultRow.NOTIF_FAVOURITES),
+                    onClick = { actions.onEditRow(DefaultRow.NOTIF_FAVOURITES) }
                 )
                 SwitchRow(
                     index = 1,
@@ -153,7 +167,9 @@ fun ColumnScope.HomeNotifsPage(settings: AlertSettings, actions: HomeActions) {
                     title = stringResource(R.string.notifs_others_title),
                     description = stringResource(R.string.notifs_others_desc),
                     checked = settings.notifOthers,
-                    onCheckedChange = actions.onToggleNotifOthers
+                    onCheckedChange = actions.onToggleNotifOthers,
+                    conditions = settings.conditionsOf(DefaultRow.NOTIF_OTHERS),
+                    onClick = { actions.onEditRow(DefaultRow.NOTIF_OTHERS) }
                 )
             }
             ContactRuleGroup(
@@ -164,6 +180,7 @@ fun ColumnScope.HomeNotifsPage(settings: AlertSettings, actions: HomeActions) {
                 addText = stringResource(R.string.notifs_add_contact_btn),
                 onSave = actions.onSaveSenderRule,
                 onDelete = actions.onDeleteSenderRule,
+                onEdit = actions.onEditSender,
                 onAdd = actions.onAddSender
             )
             RuleGroupHeader(stringResource(R.string.notifs_app_rules_header, settings.appRules.size))
@@ -180,7 +197,9 @@ fun ColumnScope.HomeNotifsPage(settings: AlertSettings, actions: HomeActions) {
                                 buzz = rule.buzz,
                                 onBuzzChange = { actions.onSaveAppRule(rule.copy(buzz = it)) },
                                 onDelete = { actions.onDeleteAppRule(rule) },
-                                leading = { AppBadge(rule.packageName) }
+                                leading = { AppBadge(rule.packageName) },
+                                conditions = rule.conditions,
+                                onEdit = { actions.onEditApp(rule) }
                             )
                         }
                     }
@@ -200,6 +219,7 @@ private fun ContactRuleGroup(
     addText: String,
     onSave: (ContactRule) -> Unit,
     onDelete: (ContactRule) -> Unit,
+    onEdit: (ContactRule) -> Unit,
     onAdd: () -> Unit
 ) {
     RuleGroupHeader(header)
@@ -216,7 +236,9 @@ private fun ContactRuleGroup(
                         buzz = rule.buzz,
                         onBuzzChange = { onSave(rule.copy(buzz = it)) },
                         onDelete = { onDelete(rule) },
-                        leading = { ContactBadge() }
+                        leading = { ContactBadge() },
+                        conditions = rule.conditions,
+                        onEdit = { onEdit(rule) }
                     )
                 }
             }
@@ -238,12 +260,14 @@ private fun heroStatus(on: Boolean, ruleCount: Int): String {
 
 /**
  * A connected toggle group, one button per page, that mirrors the pager position.
- * Only the selected tab carries its label; the others shrink to their icon.
+ * Only the selected tab carries its label; the others shrink to their icon. [trailing] sits at
+ * the far end of the row.
  */
 @Composable
 internal fun HomePageToggle(
     selectedIndex: Int,
-    onSelect: (Int) -> Unit
+    onSelect: (Int) -> Unit,
+    trailing: (@Composable () -> Unit)? = null
 ) {
     val tabs = listOf(
         Icons.Rounded.Call to R.string.home_tab_calls,
@@ -306,6 +330,11 @@ internal fun HomePageToggle(
                     }
                 }
             }
+        }
+        if (trailing != null) {
+            // Pushed to the far end, apart from the page buttons.
+            Spacer(Modifier.weight(1f))
+            trailing()
         }
     }
 }

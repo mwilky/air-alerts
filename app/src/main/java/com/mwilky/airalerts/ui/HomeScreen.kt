@@ -16,6 +16,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
@@ -37,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.draw.clip
@@ -53,6 +55,8 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Velocity
 import kotlin.math.roundToInt
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import java.util.UUID
 import kotlinx.coroutines.launch
@@ -66,6 +70,8 @@ import com.mwilky.airalerts.AlertSettings
 import com.mwilky.airalerts.AppRule
 import com.mwilky.airalerts.ContactRule
 import com.mwilky.airalerts.Contacts
+import com.mwilky.airalerts.DefaultRow
+import com.mwilky.airalerts.QuietWindow
 import com.mwilky.airalerts.R
 import com.mwilky.airalerts.band.AirBand
 import com.mwilky.airalerts.band.BandBattery
@@ -220,6 +226,8 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
         if (target == PICK_CALLER) viewModel.saveCallerRule(rule) else viewModel.saveSenderRule(rule)
     }
     var pickingApp by rememberSaveable { mutableStateOf(false) }
+    // The rule or default row whose conditions sheet is open, as "kind:id" so it survives rotation.
+    var editing by rememberSaveable { mutableStateOf<String?>(null) }
 
     // Google Health has the band otherwise, so read the battery each time Home opens.
     LifecycleResumeEffect(environment.canBuzz) {
@@ -258,7 +266,11 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
             },
             onSaveAppRule = viewModel::saveAppRule,
             onDeleteAppRule = viewModel::deleteAppRule,
-            onAddApp = { pickingApp = true }
+            onAddApp = { pickingApp = true },
+            onEditRow = { editing = "row:${it.name}" },
+            onEditCaller = { editing = "caller:${it.id}" },
+            onEditSender = { editing = "sender:${it.id}" },
+            onEditApp = { editing = "app:${it.packageName}" }
         ),
         problems = ProblemActions(
             onAllowNearby = { nearbyLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT) },
@@ -267,8 +279,36 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
             onOpenGoogleHealth = { context.startActivity(googleHealthIntent(context)) },
             onAllowNotificationAccess = { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) },
             onAllowContacts = askContacts
-        )
+        ),
+        onTestBuzz = viewModel::testBuzz
     )
+
+    editing?.let { target ->
+        val settings = state.settings
+        val (kind, id) = target.split(":", limit = 2)
+        val defaultWindow = QuietWindow(settings.quietStart, settings.quietEnd)
+        val close = { editing = null }
+        when (kind) {
+            "row" -> DefaultRow.entries.firstOrNull { it.name == id }?.let { row ->
+                RuleConditionsSheet(
+                    title = stringResource(row.titleRes),
+                    conditions = settings.conditionsOf(row),
+                    defaultWindow = defaultWindow,
+                    onChange = { viewModel.setRowConditions(row, it) },
+                    onDismiss = close
+                )
+            }
+            "caller" -> settings.callerRules.firstOrNull { it.id == id }?.let { rule ->
+                RuleConditionsSheet(rule.name, rule.conditions, defaultWindow, { viewModel.saveCallerRule(rule.copy(conditions = it)) }, close)
+            }
+            "sender" -> settings.senderRules.firstOrNull { it.id == id }?.let { rule ->
+                RuleConditionsSheet(rule.name, rule.conditions, defaultWindow, { viewModel.saveSenderRule(rule.copy(conditions = it)) }, close)
+            }
+            "app" -> settings.appRules.firstOrNull { it.packageName == id }?.let { rule ->
+                RuleConditionsSheet(rule.appName, rule.conditions, defaultWindow, { viewModel.saveAppRule(rule.copy(conditions = it)) }, close)
+            }
+        }
+    }
 
     if (pickingApp) {
         AppPickerDialog(
@@ -282,6 +322,16 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
         )
     }
 }
+
+/** The title a default row shows on its page, for its conditions sheet. */
+private val DefaultRow.titleRes: Int
+    get() = when (this) {
+        DefaultRow.CALL_FAVOURITES -> R.string.calls_fav_title
+        DefaultRow.CALL_CONTACTS -> R.string.calls_contacts_title
+        DefaultRow.CALL_UNKNOWN -> R.string.calls_unknown_title
+        DefaultRow.NOTIF_FAVOURITES -> R.string.notifs_fav_title
+        DefaultRow.NOTIF_OTHERS -> R.string.notifs_others_title
+    }
 
 private const val PICK_CALLER = "caller"
 private const val PICK_SENDER = "sender"
@@ -309,22 +359,12 @@ fun HomeContent(
     environment: Environment,
     actions: HomeActions,
     problems: ProblemActions,
+    onTestBuzz: () -> Unit = {},
     initialPage: Int = 0
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val pagerState = rememberPagerState(initialPage) { 2 }
     val scope = rememberCoroutineScope()
-
-    // The status card folds into a chip as the pages scroll, and opens again at the top.
-    val pageScrolls = listOf(rememberScrollState(), rememberScrollState())
-    // Each page folds the card as far as its own scroll took it.
-    val status = remember { StatusCollapse(pages = 2) }
-    if (!environment.canBuzz) status.range = 0f
-    status.page = pagerState.currentPage
-    // A page with nothing to scroll (one that's switched off, say) leaves the card open rather
-    // than turning empty space into something to scroll. Once folding has started the page counts
-    // as scrollable, so the card can finish folding even if the page then fits.
-    status.canFold = { pageScrolls[status.page].maxValue > 0 || status.offset(status.page) > 0f }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -339,11 +379,10 @@ fun HomeContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .nestedScroll(status.connection),
+                .padding(padding),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Status covers both pages, so it sits above the toggle and stays put while they swipe.
+            // A problem stopping buzzes covers both pages, so it sits above the toggle.
             Column(
                 modifier = Modifier
                     .widthIn(max = 640.dp)
@@ -353,31 +392,21 @@ fun HomeContent(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 ProblemCard(environment, state.settings, problems)
-                // A Bluetooth, Nearby devices or pairing problem above takes this card's place.
-                if (environment.canBuzz) {
-                    BandStatusCard(
-                        latest = state.activity.firstOrNull(),
-                        battery = state.battery,
-                        checkingBattery = state.checkingBattery,
-                        collapse = status,
-                        pagerPosition = { pagerState.currentPage + pagerState.currentPageOffsetFraction },
-                        onExpand = {
-                            scope.launch { pageScrolls[pagerState.currentPage].animateScrollTo(0) }
-                            scope.launch { status.expand() }
-                        }
-                    )
-                }
             }
             HomePageToggle(
                 selectedIndex = pagerState.currentPage,
-                onSelect = { page -> scope.launch { pagerState.animateScrollToPage(page) } }
+                onSelect = { page -> scope.launch { pagerState.animateScrollToPage(page) } },
+                // A Bluetooth, Nearby devices or pairing problem above takes the chip's place.
+                trailing = if (environment.canBuzz) {
+                    { BandChip(state.activity.firstOrNull(), state.battery, state.checkingBattery, state.busy, onTestBuzz) }
+                } else null
             )
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize(),
                 verticalAlignment = Alignment.Top
             ) { page ->
-                ScrollingPage(topPadding = 0.dp, scrollState = pageScrolls[page]) {
+                ScrollingPage(topPadding = 0.dp) {
                     when (page) {
                         0 -> {
                             if (state.settings.calls && state.settings.callFavourites && !environment.contactsAccess) {
@@ -448,118 +477,83 @@ private fun ContactsCard(onAllow: () -> Unit) {
 }
 
 /**
- * How far the status card has folded towards its chip on each page, in pixels of scroll it has
- * taken. Like a collapsing app bar it takes the scroll before the page does on the way down, and
- * gives it back only once the page is at its top, so the card follows the finger instead of a
- * scroll position its own size keeps changing. A part-folded card settles to whichever end is
- * nearer.
+ * Your Fitbit Air at a glance, at the end of the page toggle: ready (or grey after a missed buzz)
+ * and its battery. A tap pops the full status card out beneath it, with a Test buzz.
  */
-@Stable
-private class StatusCollapse(pages: Int) {
-    private val offsets = mutableStateListOf<Float>().apply { repeat(pages) { add(0f) } }
-
-    /** The page whose scroll moves the fold: the one in view. */
-    var page = 0
-
-    /** Card height minus chip height; set as they're measured. */
-    var range = 0f
-
-    /** Whether the page in view can fold the card at all. */
-    var canFold: () -> Boolean = { true }
-
-    fun offset(page: Int) = offsets[page]
-
-    private fun progressOf(page: Int) = if (range > 0f) (offsets[page] / range).coerceIn(0f, 1f) else 0f
-
-    /** Mid-swipe the fold blends from one page's to the other's, so the card never jumps. */
-    fun progressAt(pagerPosition: Float): Float {
-        val last = offsets.lastIndex
-        val position = pagerPosition.coerceIn(0f, last.toFloat())
-        val from = position.toInt().coerceAtMost(last)
-        val to = (from + 1).coerceAtMost(last)
-        val f = position - from
-        return progressOf(from) * (1f - f) + progressOf(to) * f
-    }
-
-    val connection = object : NestedScrollConnection {
-        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-            if (available.y >= 0f || range <= 0f || !canFold()) return Offset.Zero
-            // Half of each scroll folds the card and the rest scrolls the page, so the fold is
-            // spread over twice the distance while the page still keeps up with the finger.
-            val take = minOf(-available.y * FOLD_SHARE, range - offsets[page]).coerceAtLeast(0f)
-            offsets[page] += take
-            return Offset(0f, -take)
-        }
-
-        override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
-            if (available.y <= 0f || offsets[page] <= 0f) return Offset.Zero
-            val give = minOf(available.y, offsets[page])
-            offsets[page] -= give
-            return Offset(0f, give)
-        }
-
-        override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-            val offset = offsets[page]
-            if (offset > 0f && offset < range) settleTo(page, if (offset / range > 0.5f) range else 0f)
-            return Velocity.Zero
-        }
-    }
-
-    suspend fun expand() = settleTo(page, 0f)
-
-    private suspend fun settleTo(page: Int, target: Float) {
-        // Unhurried and without bounce, so letting go part-way glides rather than snaps.
-        animate(offsets[page], target, animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessVeryLow)) { value, _ ->
-            offsets[page] = value
+@Composable
+private fun BandChip(
+    latest: ActivityEntry?,
+    battery: BandBattery?,
+    checkingBattery: Boolean,
+    busy: Boolean,
+    onTestBuzz: () -> Unit
+) {
+    val ok = latest == null || latest.buzzed
+    val accent = if (ok) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    val name = stringResource(R.string.band_title)
+    val status = stringResource(R.string.band_status_ready)
+    var open by rememberSaveable { mutableStateOf(false) }
+    Box {
+        BandChipPill(accent, battery, checkingBattery, label = "$name, $status", onClick = { open = true })
+        // The menu supplies the pop-out motion and dismissal; the card brings its own surface.
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { open = false },
+            // The card sits inset by its shadow room, so pull the menu back to keep it under the chip.
+            offset = DpOffset(0.dp, (-4).dp),
+            shape = AirAlertsShapes.CardShape,
+            containerColor = Color.Transparent,
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp
+        ) {
+            // Room on every side for the shadow, which the pop-out window would otherwise clip into a
+            // hard edge (plain to see on a light background). The outline keeps the card's edge
+            // clear in light mode, where the shadow alone is faint.
+            Surface(
+                shape = AirAlertsShapes.CardShape,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                shadowElevation = 3.dp,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .widthIn(max = 340.dp)
+            ) {
+                BandStatusCard(latest, battery, checkingBattery, busy, onTestBuzz)
+            }
         }
     }
 }
 
-/**
- * Your Fitbit Air is reachable as far as the phone can tell, and how the last buzz went. As the
- * page scrolls it folds into a chip with just the name, status and battery, its height following
- * [collapse]; a tap on the chip scrolls back up and opens it again.
- */
+/** The status card the chip opens: how the last buzz went, the battery, and a Test buzz. */
 @Composable
 private fun BandStatusCard(
     latest: ActivityEntry?,
     battery: BandBattery?,
     checkingBattery: Boolean,
-    collapse: StatusCollapse,
-    pagerPosition: () -> Float,
-    onExpand: () -> Unit
+    busy: Boolean,
+    onTestBuzz: () -> Unit
 ) {
-    Layout(
-        content = {
-            BandStatusFull(latest, battery, checkingBattery)
-            BandStatusChip(latest, battery, checkingBattery, onExpand)
-        },
-        modifier = Modifier.clipToBounds()
-    ) { measurables, constraints ->
-        val loose = constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity)
-        val full = measurables[0].measure(loose)
-        val chip = measurables[1].measure(loose)
-        collapse.range = (full.height - chip.height).coerceAtLeast(0).toFloat()
-        val p = collapse.progressAt(pagerPosition())
-        val height = (full.height + (chip.height - full.height) * p).roundToInt()
-        layout(full.width, height) {
-            // Overlapping fades, eased, so the two read as one card changing shape: the card's
-            // detail goes in the first two thirds while the slim row comes in over the last two.
-            val cardAlpha = FastOutSlowInEasing.transform((1f - p * 1.5f).coerceIn(0f, 1f))
-            val rowAlpha = FastOutSlowInEasing.transform(((p - 1f / 3f) * 1.5f).coerceIn(0f, 1f))
-            full.placeWithLayer(0, 0) { alpha = cardAlpha }
-            chip.placeWithLayer(0, 0) { alpha = rowAlpha }
-        }
-    }
-}
-
-@Composable
-private fun BandStatusFull(latest: ActivityEntry?, battery: BandBattery?, checkingBattery: Boolean) {
     val context = LocalContext.current
     val title = stringResource(R.string.band_title)
     val status = stringResource(R.string.band_status_ready)
     val trailing: (@Composable () -> Unit)? =
         if (battery != null || checkingBattery) ({ BatteryBadge(battery, checkingBattery) }) else null
+    val testButton: @Composable () -> Unit = {
+        FilledTonalButton(
+            onClick = onTestBuzz,
+            enabled = !busy,
+            modifier = Modifier.fillMaxWidth(),
+            shapes = ButtonDefaults.shapes()
+        ) {
+            if (busy) {
+                LoadingIndicator(modifier = Modifier.size(ButtonDefaults.IconSize))
+                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                Text(stringResource(R.string.band_test_running))
+            } else {
+                ButtonLabel(Icons.Rounded.Vibration, stringResource(R.string.band_test_btn))
+            }
+        }
+    }
     if (latest == null || latest.buzzed) {
         StandardDiagnosticCard(
             title = title,
@@ -571,7 +565,8 @@ private fun BandStatusFull(latest: ActivityEntry?, battery: BandBattery?, checki
             icon = Icons.Rounded.Watch,
             statusText = status,
             isOk = true,
-            trailing = trailing
+            trailing = trailing,
+            bottomAction = testButton
         )
     } else {
         // A missed buzz is often Google Health busy with the band, so neutral rather than red.
@@ -583,67 +578,44 @@ private fun BandStatusFull(latest: ActivityEntry?, battery: BandBattery?, checki
             accentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
             contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            trailing = trailing
+            trailing = trailing,
+            bottomAction = testButton
         )
     }
 }
 
-/**
- * The card folded down to one slim row: the same width, shape and colours as the card, so folding
- * reads as the card shrinking rather than being swapped for something else.
- */
 @Composable
-private fun BandStatusChip(latest: ActivityEntry?, battery: BandBattery?, checkingBattery: Boolean, onExpand: () -> Unit) {
-    val ok = latest == null || latest.buzzed
-    // The same colours as the card it folds from.
-    val accent = if (ok) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    val container = if (ok) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f) else MaterialTheme.colorScheme.surfaceVariant
-    val content = if (ok) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+private fun BandChipPill(accent: Color, battery: BandBattery?, checkingBattery: Boolean, label: String, onClick: () -> Unit) {
+    // The page toggle's unselected tone, so the chip sits with the tabs without looking like one.
     Surface(
-        onClick = onExpand,
-        modifier = Modifier.fillMaxWidth(),
-        shape = AirAlertsShapes.CardShape,
-        color = container,
-        contentColor = content
+        onClick = onClick,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier
+            .height(40.dp)
+            .semantics(mergeDescendants = true) { contentDescription = label }
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
+            modifier = Modifier.padding(start = 6.dp, end = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(28.dp)
                     .clip(MaterialShapes.Cookie9Sided.toShape())
                     .background(accent.copy(alpha = 0.18f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Rounded.Watch, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
+                Icon(Icons.Rounded.Watch, contentDescription = null, tint = accent, modifier = Modifier.size(16.dp))
             }
-            Text(
-                text = stringResource(R.string.band_title),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                modifier = Modifier.weight(1f)
+            Box(
+                modifier = Modifier
+                    .size(7.dp)
+                    .clip(CircleShape)
+                    .background(accent)
             )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(7.dp)
-                        .clip(CircleShape)
-                        .background(accent)
-                )
-                Text(
-                    text = stringResource(R.string.band_status_ready),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = accent,
-                    fontWeight = FontWeight.Bold
-                )
-            }
             if (battery != null || checkingBattery) BatteryBadge(battery, checkingBattery, compact = true)
         }
     }
@@ -706,8 +678,6 @@ private fun batteryIcon(battery: BandBattery): ImageVector = when {
 
 private const val STALE_BATTERY_MS = 10 * 60_000L
 
-/** The part of a downward scroll the status card takes while it folds. */
-private const val FOLD_SHARE = 0.5f
 
 // Previews
 

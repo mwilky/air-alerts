@@ -33,7 +33,9 @@ class AlertListener : NotificationListenerService() {
         if (n.flags and Notification.FLAG_GROUP_SUMMARY != 0) return
         val isCall = n.category == Notification.CATEGORY_CALL
         val ranking = Ranking().also { rankingMap.getRanking(sbn.key, it) }
-        if (!ranking.matchesInterruptionFilter()) return // Do Not Disturb hides it
+        // What Do Not Disturb hides, and whether it's on at all; the matching rule decides.
+        val dndHidden = !ranking.matchesInterruptionFilter()
+        val dndOn = currentInterruptionFilter.let { it != INTERRUPTION_FILTER_ALL && it != INTERRUPTION_FILTER_UNKNOWN }
 
         var ringing: MutableStateFlow<Boolean>? = null
         val kind = if (isCall) {
@@ -67,12 +69,16 @@ class AlertListener : NotificationListenerService() {
         app.scope.launch {
             val settings = app.store.currentSettings()
             val isFavourite = { name: String -> Contacts.isFavourite(this@AlertListener, name) }
-            val wanted = when (kind) {
-                AlertKind.CALL -> settings.calls &&
-                    RuleMatch.callBuzzes(settings, person, isFavourite) { Contacts.isSaved(this@AlertListener, it) }
-                else -> settings.notifications &&
-                    RuleMatch.notificationBuzzes(settings, sbn.packageName, person, isFavourite)
+            val match = when (kind) {
+                AlertKind.CALL -> if (settings.calls) {
+                    RuleMatch.callMatch(settings, person, isFavourite) { Contacts.isSaved(this@AlertListener, it) }
+                } else null
+                else -> if (settings.notifications) {
+                    RuleMatch.notificationMatch(settings, sbn.packageName, person, isFavourite)
+                } else null
             }
+            val wanted = match != null && match.buzz &&
+                !conditionsBlock(match.conditions, settings, dndHidden, dndOn, currentMinutesOfWeek(), localeWeekendDays())
             if (wanted) app.buzzer.request(AlertBuzzer.Trigger(kind, appName, sbn.postTime, ringing))
         }
     }

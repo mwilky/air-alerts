@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import com.mwilky.airalerts.ui.AirAlertsTheme
 import com.mwilky.airalerts.ui.BuzzesScreen
+import com.mwilky.airalerts.ui.ConditionsScreen
 import com.mwilky.airalerts.ui.HomeScreen
 
 class MainActivity : ComponentActivity() {
@@ -52,6 +53,7 @@ class MainActivity : ComponentActivity() {
 
 private enum class NavTab(val titleRes: Int, val icon: ImageVector) {
     HOME(R.string.nav_home, Icons.Rounded.Home),
+    CONDITIONS(R.string.nav_conditions, Icons.Rounded.Tune),
     BUZZES(R.string.nav_activity, Icons.Rounded.History)
 }
 
@@ -81,6 +83,7 @@ private fun MainAppNavigation() {
         ) {
             when (selectedTab) {
                 NavTab.HOME -> HomeScreen()
+                NavTab.CONDITIONS -> ConditionsScreen()
                 NavTab.BUZZES -> BuzzesScreen()
             }
         }

@@ -10,6 +10,7 @@
     <string name="band_status_ready">Ready</string>
     <string name="band_last_buzz">Last buzz at %1$s.</string>
     <string name="band_last_failed">Last try at %1$s failed. %2$s</string>
+    <string name="home_band_never_buzzed">No buzz yet.</string>
     <string name="band_battery">Battery was %1$d%% at %2$s.</string>
     <string name="band_battery_charging">Battery was %1$d%% at %2$s, on charge.</string>
     <string name="band_battery_now">Battery is at %1$d%%.</string>
@@ -26,7 +27,6 @@
     <string name="test_status_failed">Last try failed</string>
     <string name="test_status_busy">Buzzing&#8230;</string>
     <string name="test_status_blocked">Can\'t buzz</string>
-    <string name="home_band_never_buzzed">No buzz yet. Try a Test buzz on the Buzzes tab.</string>
 
     <!-- Last buzz (steps) -->
     <string name="steps_header">Last buzz</string>
@@ -89,6 +89,43 @@
     <string name="notifs_app_rules_header">App rules (%1$d)</string>
     <string name="notifs_no_app_rules">No app rules yet. Add one to make an app always buzz or always stay quiet.</string>
     <string name="notifs_add_app_btn">Add app</string>
+
+    <!-- Conditions -->
+    <string name="nav_conditions">Conditions</string>
+    <string name="conditions_defaults_desc">These apply to every rule. Each rule can override them in its own settings.</string>
+    <string name="conditions_dnd_title">Do Not Disturb</string>
+    <string name="conditions_dnd_desc">Anything Do Not Disturb silences on your phone doesn\'t buzz your Fitbit Air.</string>
+    <string name="conditions_quiet_hours_title">Quiet hours</string>
+    <string name="conditions_quiet_hours_desc">Nothing buzzes between the times you set.</string>
+    <string name="conditions_quiet_hours_every_day">Every day</string>
+    <string name="conditions_quiet_hours_weekends_differ">Weekends differ</string>
+    <string name="conditions_quiet_hours_custom">Custom</string>
+    <string name="conditions_quiet_hours_weekdays">Weekdays</string>
+    <string name="conditions_quiet_hours_weekends">Weekends</string>
+    <string name="conditions_quiet_hours_start">Starts</string>
+    <string name="conditions_quiet_hours_end">Ends</string>
+    <string name="conditions_quiet_hours_range">%1$s – %2$s</string>
+    <string name="conditions_quiet_hours_day_off">No quiet hours</string>
+    <string name="conditions_quiet_hours_overnight">Overnight times belong to the day they start on. Friday\'s run into Saturday morning.</string>
+    <string name="conditions_quiet_hours_dialog_title">%1$s · %2$s</string>
+    <string name="dialog_save">Save</string>
+
+    <!-- Rule conditions editor -->
+    <string name="editor_dnd_title">Do Not Disturb</string>
+    <string name="editor_quiet_title">Quiet hours</string>
+    <string name="editor_mode_default">Default</string>
+    <string name="editor_mode_always">Always buzz</string>
+    <string name="editor_mode_skip">Stay quiet</string>
+    <string name="editor_dnd_desc_default">Follows the Do Not Disturb setting on the Conditions tab.</string>
+    <string name="editor_dnd_desc_always">Buzzes even while Do Not Disturb is on.</string>
+    <string name="editor_dnd_desc_skip">Stays quiet whenever Do Not Disturb is on, even if the Conditions tab allows it.</string>
+    <string name="editor_quiet_desc_default">Follows quiet hours on the Conditions tab.</string>
+    <string name="editor_quiet_desc_always">Buzzes even during quiet hours.</string>
+    <string name="editor_quiet_desc_skip">Stays quiet between the times below, even if quiet hours are off on the Conditions tab.</string>
+    <string name="chip_dnd_always">Buzzes in DND</string>
+    <string name="chip_dnd_skip">Quiet in DND</string>
+    <string name="chip_quiet_always">Buzzes in quiet hours</string>
+    <string name="chip_quiet_skip">Quiet in quiet hours</string>
 
     <!-- App picker -->
     <string name="app_picker_title">Choose an app</string>

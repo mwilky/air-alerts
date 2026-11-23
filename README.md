@@ -7,11 +7,12 @@ Your Fitbit Air keeps buzzing while a call rings and buzzes once for each notifi
 Air Alerts is unofficial. It isn't made by, or affiliated with, Google or Fitbit, and a Fitbit Air or Google Health update could stop it working. Version 0.9.0 is a beta.
 
 <p align="center">
-  <img src="docs/screenshots/home.png" width="18%" alt="Home on the Calls page, with the Fitbit Air status card, call switches and caller rules" />
-  <img src="docs/screenshots/notifications.png" width="18%" alt="Notifications page with favourites and the all other notifications switch" />
-  <img src="docs/screenshots/rules.png" width="18%" alt="Notifications page scrolled to contact rules and app rules, with the status card folded" />
-  <img src="docs/screenshots/buzzes.png" width="18%" alt="Buzzes tab with Test buzz, the steps of the last buzz and recent buzzes" />
-  <img src="docs/screenshots/onboarding.png" width="18%" alt="First-run setup checking Nearby devices, Bluetooth and pairing" />
+  <img src="docs/screenshots/home.png" width="15%" alt="Home on the Calls page, with the Fitbit Air status chip, call switches and caller rules" />
+  <img src="docs/screenshots/notifications.png" width="15%" alt="Notifications page with favourites and the all other notifications switch" />
+  <img src="docs/screenshots/rules.png" width="15%" alt="Notifications page scrolled to contact rules and app rules, with condition chips on a rule" />
+  <img src="docs/screenshots/conditions.png" width="15%" alt="Conditions tab with Do Not Disturb and a quiet hours schedule" />
+  <img src="docs/screenshots/buzzes.png" width="15%" alt="Buzzes tab with Test buzz, the steps of the last buzz and recent buzzes" />
+  <img src="docs/screenshots/onboarding.png" width="15%" alt="First-run setup checking Nearby devices, Bluetooth and pairing" />
 </p>
 
 ## Features
@@ -25,7 +26,7 @@ Air Alerts is unofficial. It isn't made by, or affiliated with, Google or Fitbit
 - A caller rule is checked first, then favourites, then all other contacts or unknown numbers.
 
 **Notifications**
-- One buzz for each notification that makes a sound or vibrates your phone. Silent notifications, ongoing ones such as music and downloads, and anything Do Not Disturb hides don't buzz.
+- One buzz for each notification that makes a sound or vibrates your phone. Silent notifications and ongoing ones such as music and downloads don't buzz.
 - Messages that arrive while a buzz is going out share the next one, so a burst of messages doesn't buzz over and over.
 - Favourite contacts: notifications from contacts you've starred always buzz, whatever the app.
 - Contact rules, matched by the sender's name in any app, so a WhatsApp message from one person can buzz or stay quiet.
@@ -33,9 +34,19 @@ Air Alerts is unofficial. It isn't made by, or affiliated with, Google or Fitbit
 - All other notifications: one switch for anything your rules don't cover.
 - A contact rule wins, then favourites, then an app rule, then All other notifications.
 
+**Conditions**
+- The Conditions tab sets two defaults that apply to every rule: Do Not Disturb and quiet hours.
+- Do Not Disturb, on to start with: anything Do Not Disturb silences on your phone doesn't buzz your Fitbit Air. People and apps that Do Not Disturb lets through still buzz. Turn it off and Do Not Disturb doesn't affect buzzes.
+- Quiet hours, off to start with: nothing buzzes between the times you set. The hours can run overnight.
+- Quiet hours can be the same every day, differ at weekends (weekend days follow your region) or be set for each day, and any day can have none.
+- Tap any rule or switch on the Calls or Notifications page, including favourites, all other contacts, unknown numbers and all other notifications, to give it its own conditions.
+- For Do Not Disturb, a rule can follow the Conditions tab, always buzz even in Do Not Disturb, or stay quiet whenever Do Not Disturb is on, even for things it lets through.
+- For quiet hours, a rule can follow the Conditions tab, always buzz even in quiet hours, or stay quiet during its own hours.
+- Rules with their own conditions show small chips under them saying so. The switch on each row sets whether it buzzes or stays quiet.
+
 **Home**
 - Calls and Notifications pages, each with its own on/off switch. Both start off, and rules are kept while a page is off.
-- A status card shows that your Fitbit Air is ready, when it last buzzed and its battery level. It folds into a slim bar as you scroll.
+- A status chip beside the Calls and Notifications switcher shows your Fitbit Air's state and battery level. Tap it for a status card with when it last buzzed, the battery level and a Test buzz button.
 - The battery level is read whenever you open Home, at most once a minute, by borrowing the band's channel for a few seconds.
 - If something is stopping buzzes, such as Bluetooth being off, a permission being revoked or no Fitbit Air being paired, a card on Home says what and how to fix it.
 

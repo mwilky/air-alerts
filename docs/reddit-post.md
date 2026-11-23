@@ -17,17 +17,23 @@ Free, no ads, no accounts, no analytics. The app doesn't even have the internet 
 
 **Notifications**
 
-* One buzz for each notification that makes a sound or vibrates your phone. Silent ones, ongoing ones (music, downloads) and anything Do Not Disturb hides don't buzz.
+* One buzz for each notification that makes a sound or vibrates your phone. Silent ones and ongoing ones (music, downloads) don't buzz.
 * If messages arrive while a buzz is going out they share the next one, so a busy group chat doesn't buzz over and over.
 * Starred contacts always buzz, whatever the app.
 * Contact rules, matched by the sender's name in any app. So a WhatsApp message from one person can buzz, or stay quiet.
 * App rules: any app set to buzz or stay quiet.
 * The order is contact rule, then favourites, then app rule, then a catch-all switch for everything else.
 
+**Conditions**
+
+* Do Not Disturb: anything it silences on your phone doesn't buzz your Fitbit Air, and the people and apps it lets through still do. You can turn that off.
+* Quiet hours: nothing buzzes between the times you set. They can run overnight, differ at weekends, or be set day by day.
+* Tap any rule to give it its own answer: always buzz, even in Do Not Disturb or quiet hours, or stay quiet whenever Do Not Disturb is on or during its own hours.
+
 **Other bits**
 
 * Calls and Notifications each have their own on/off switch. Both start off.
-* A status card on Home shows your Fitbit Air is ready, when it last buzzed and its battery level.
+* A chip on Home shows your Fitbit Air's state and battery. Tap it for when it last buzzed and a Test buzz button.
 * A Buzzes tab with a Test buzz button, each step of the last buzz with how long it took, and a list of recent buzzes and misses with the reason for a miss.
 * Setup walks you through the permissions and finishes with a test buzz.
 

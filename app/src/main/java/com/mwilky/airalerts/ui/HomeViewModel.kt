@@ -10,6 +10,11 @@ import com.mwilky.airalerts.AlertKind
 import com.mwilky.airalerts.AlertSettings
 import com.mwilky.airalerts.AppRule
 import com.mwilky.airalerts.ContactRule
+import com.mwilky.airalerts.DefaultRow
+import com.mwilky.airalerts.QuietHoursRepeat
+import com.mwilky.airalerts.QuietWindow
+import com.mwilky.airalerts.RuleConditions
+import java.time.DayOfWeek
 import com.mwilky.airalerts.band.BandBattery
 import com.mwilky.airalerts.band.BuzzRun
 import kotlinx.coroutines.flow.SharingStarted
@@ -62,6 +67,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun setCallUnknown(value: Boolean) = viewModelScope.launch { app.store.setCallUnknown(value) }
     fun setNotifFavourites(value: Boolean) = viewModelScope.launch { app.store.setNotifFavourites(value) }
     fun setNotifOthers(value: Boolean) = viewModelScope.launch { app.store.setNotifOthers(value) }
+
+    fun setRowConditions(row: DefaultRow, conditions: RuleConditions) = viewModelScope.launch { app.store.setRowConditions(row, conditions) }
+    fun setDndQuiet(value: Boolean) = viewModelScope.launch { app.store.setDndQuiet(value) }
+    fun setQuietHours(value: Boolean) = viewModelScope.launch { app.store.setQuietHours(value) }
+    fun setQuietWindow(start: Int, end: Int) = viewModelScope.launch { app.store.setQuietWindow(start, end) }
+    fun setQuietRepeat(repeat: QuietHoursRepeat) = viewModelScope.launch { app.store.setQuietRepeat(repeat) }
+    fun setQuietWeekend(start: Int, end: Int) = viewModelScope.launch { app.store.setQuietWeekend(start, end) }
+    fun setQuietDay(day: DayOfWeek, window: QuietWindow) = viewModelScope.launch { app.store.setQuietDay(day, window) }
 
     fun saveCallerRule(rule: ContactRule) = viewModelScope.launch { app.store.saveCallerRule(rule) }
     fun deleteCallerRule(rule: ContactRule) = viewModelScope.launch { app.store.deleteCallerRule(rule.id) }

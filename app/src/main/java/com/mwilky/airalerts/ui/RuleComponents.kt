@@ -58,6 +58,21 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.mwilky.airalerts.R
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material.icons.rounded.Bedtime
+import androidx.compose.material.icons.rounded.DoNotDisturbOn
+import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
+import com.mwilky.airalerts.DndMode
+import com.mwilky.airalerts.QuietHoursMode
+import com.mwilky.airalerts.RuleConditions
 
 // The shared building blocks, so this app's screens read the same way.
 
@@ -212,10 +227,12 @@ fun SwitchRow(
     title: String,
     description: String,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    onCheckedChange: (Boolean) -> Unit,
+    conditions: RuleConditions? = null,
+    onClick: (() -> Unit)? = null
 ) {
     SegmentedListItem(
-        onClick = { onCheckedChange(!checked) },
+        onClick = onClick ?: { onCheckedChange(!checked) },
         shapes = ListItemDefaults.segmentedShapes(index = index, count = count),
         colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
     ) {
@@ -234,6 +251,7 @@ fun SwitchRow(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                conditions?.let { ConditionChips(it, Modifier.padding(top = 6.dp)) }
             }
             Switch(checked = checked, onCheckedChange = onCheckedChange)
         }
@@ -252,12 +270,14 @@ fun RuleListItem(
     buzz: Boolean,
     onBuzzChange: (Boolean) -> Unit,
     onDelete: () -> Unit,
-    leading: @Composable () -> Unit
+    leading: @Composable () -> Unit,
+    conditions: RuleConditions = RuleConditions(),
+    onEdit: (() -> Unit)? = null
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     Box {
         SegmentedListItem(
-            onClick = { onBuzzChange(!buzz) },
+            onClick = onEdit ?: { onBuzzChange(!buzz) },
             onLongClick = { menuOpen = true },
             onLongClickLabel = stringResource(R.string.rule_delete),
             shapes = ListItemDefaults.segmentedShapes(index = index, count = count),
@@ -265,7 +285,13 @@ fun RuleListItem(
             verticalAlignment = Alignment.CenterVertically,
             leadingContent = leading,
             supportingContent = {
-                AnimatedText(text = stringResource(if (buzz) R.string.rule_buzzes else R.string.rule_quiet))
+                Column(
+                    modifier = Modifier.animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec()),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    AnimatedText(text = stringResource(if (buzz) R.string.rule_buzzes else R.string.rule_quiet))
+                    ConditionChips(conditions)
+                }
             },
             trailingContent = {
                 Switch(checked = buzz, onCheckedChange = onBuzzChange)
@@ -283,6 +309,117 @@ fun RuleListItem(
                 }
             )
         }
+    }
+}
+
+/**
+ * A rule's overridden conditions as small chips; following the Conditions tab shows none. Tertiary
+ * when the rule buzzes anyway, muted when it stays quiet; the label spells the direction out too,
+ * so colour isn't the only cue.
+ */
+@Composable
+fun ConditionChips(conditions: RuleConditions, modifier: Modifier = Modifier) {
+    val chips = buildList {
+        when (conditions.dnd) {
+            DndMode.INHERIT -> Unit
+            DndMode.ALWAYS -> add(Triple(Icons.Rounded.DoNotDisturbOn, R.string.chip_dnd_always, true))
+            DndMode.SKIP -> add(Triple(Icons.Rounded.DoNotDisturbOn, R.string.chip_dnd_skip, false))
+        }
+        when (conditions.quiet) {
+            QuietHoursMode.INHERIT -> Unit
+            QuietHoursMode.ALWAYS -> add(Triple(Icons.Rounded.Bedtime, R.string.chip_quiet_always, true))
+            QuietHoursMode.SKIP -> add(Triple(Icons.Rounded.Bedtime, R.string.chip_quiet_skip, false))
+        }
+    }
+    if (chips.isEmpty()) return
+    FlowRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        chips.forEach { (icon, label, buzzes) ->
+            Surface(
+                shape = CircleShape,
+                color = if (buzzes) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
+                contentColor = if (buzzes) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+            ) {
+                Row(
+                    modifier = Modifier.padding(start = 8.dp, end = 10.dp, top = 4.dp, bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(icon, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Text(text = stringResource(label), style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        }
+    }
+}
+
+/** A connected toggle-button strip for picking one of a few options. */
+@Composable
+internal fun <T> ConnectedChoice(
+    options: List<Pair<T, String>>,
+    selected: T,
+    onSelect: (T) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)
+    ) {
+        options.forEachIndexed { optionIndex, (option, label) ->
+            ToggleButton(
+                checked = selected == option,
+                onCheckedChange = { onSelect(option) },
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics { role = Role.RadioButton },
+                // On a surfaceContainer background the default unchecked colour would hide the
+                // unselected options.
+                colors = ToggleButtonDefaults.colors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                shapes = when (optionIndex) {
+                    0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                    options.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                    else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                },
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+/** A titled [ConnectedChoice] whose description changes with the option picked. */
+@Composable
+internal fun <T> ChoiceGroup(
+    title: String,
+    description: String,
+    options: List<Pair<T, String>>,
+    selected: T,
+    onSelect: (T) -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(text = title, style = MaterialTheme.typography.labelLarge)
+        AnimatedText(
+            text = description,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        ConnectedChoice(options = options, selected = selected, onSelect = onSelect)
     }
 }
 
