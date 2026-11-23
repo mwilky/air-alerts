@@ -1,0 +1,132 @@
+[CENTER]
+[SIZE=6][B][APP][Android 17+][BETA] Air Alerts[/B][/SIZE]
+[SIZE=4][I]Call and notification buzzes for the Google Fitbit Air[/I][/SIZE]
+
+[/CENTER]
+[TABLE]
+[TR]
+[TD][IMG]https://raw.githubusercontent.com/mwilky/air-alerts/main/docs/screenshots/home.png?v=1[/IMG][/TD]
+[TD][IMG]https://raw.githubusercontent.com/mwilky/air-alerts/main/docs/screenshots/notifications.png?v=1[/IMG][/TD]
+[TD][IMG]https://raw.githubusercontent.com/mwilky/air-alerts/main/docs/screenshots/rules.png?v=1[/IMG][/TD]
+[TD][IMG]https://raw.githubusercontent.com/mwilky/air-alerts/main/docs/screenshots/buzzes.png?v=1[/IMG][/TD]
+[TD][IMG]https://raw.githubusercontent.com/mwilky/air-alerts/main/docs/screenshots/onboarding.png?v=1[/IMG][/TD]
+[/TR]
+[/TABLE]
+
+[B]Air Alerts[/B] makes your Google Fitbit Air buzz for phone calls and notifications.
+
+Your Fitbit Air keeps buzzing while a call rings and buzzes once for each notification, with rules for which callers, contacts and apps buzz and which stay quiet.
+
+It is free, with no ads, no accounts and no analytics. The app has no internet permission at all, so nothing leaves your phone except Bluetooth messages to your Fitbit Air.
+
+[B]Unofficial:[/B] Air Alerts isn't made by, or affiliated with, Google or Fitbit, and a Fitbit Air or Google Health update could stop it working. Version 0.9.0 is a beta.
+
+[HR][/HR]
+
+[SIZE=5][B]Features[/B][/SIZE]
+
+[B]Calls[/B]
+[LIST]
+[*]Your Fitbit Air keeps buzzing, about once a second, while a call rings, and stops as soon as the call is answered, declined or missed. It stops after a minute at most.
+[*]Works for phone calls and for calls in apps such as WhatsApp. Calls you make don't buzz.
+[*][B]Favourite contacts:[/B] calls from contacts you've starred always buzz.
+[*]Separate switches for [B]All other contacts[/B] and [B]Unknown numbers[/B] (numbers that aren't saved in Contacts).
+[*][B]Caller rules:[/B] pick a contact and set their calls to buzz or stay quiet.
+[*]A caller rule is checked first, then favourites, then all other contacts or unknown numbers.
+[/LIST]
+
+[B]Notifications[/B]
+[LIST]
+[*]One buzz for each notification that makes a sound or vibrates your phone. Silent notifications, ongoing ones such as music and downloads, and anything Do Not Disturb hides don't buzz.
+[*]Messages that arrive while a buzz is going out share the next one, so a burst of messages doesn't buzz over and over.
+[*][B]Favourite contacts:[/B] notifications from contacts you've starred always buzz, whatever the app.
+[*][B]Contact rules:[/B] matched by the sender's name in any app, so a WhatsApp message from one person can buzz or stay quiet.
+[*][B]App rules:[/B] set any app to buzz or stay quiet.
+[*][B]All other notifications:[/B] one switch for anything your rules don't cover.
+[*]A contact rule wins, then favourites, then an app rule, then All other notifications.
+[/LIST]
+
+[B]Home[/B]
+[LIST]
+[*]Calls and Notifications pages, each with its own on/off switch. Both start off, and rules are kept while a page is off.
+[*]A status card shows that your Fitbit Air is ready, when it last buzzed and its battery level. It folds into a slim bar as you scroll.
+[*]The battery level is read whenever you open Home, at most once a minute.
+[*]If something is stopping buzzes (Bluetooth off, a permission revoked, no Fitbit Air paired), a card on Home says what and how to fix it.
+[/LIST]
+
+[B]Buzzes[/B]
+[LIST]
+[*][B]Test buzz[/B] button that sends one buzz to check everything is working.
+[*]Each step of the last buzz with how long it took: [I]connected, answered, secure connection set up, buzz sent and confirmed, connection given back to Google Health[/I].
+[*]A list of recent buzzes and misses, with the reason for each miss.
+[/LIST]
+
+[B]Setup[/B]
+[LIST]
+[*]First-run setup walks through Nearby devices, Bluetooth, pairing, notification access and the optional Contacts permission, then finishes with a test buzz.
+[/LIST]
+
+[HR][/HR]
+
+[SIZE=5][B]How it works[/B][/SIZE]
+
+The Fitbit Air has no buzz command for other apps, and it has one secure Bluetooth channel, which Google Health uses. For each buzz Air Alerts:
+
+[LIST=1]
+[*]Borrows that channel for a few seconds. It only connects to the Fitbit Air that's already paired, and never scans for devices.
+[*]Changes the band's buzz-strength setting, then changes it back. The band buzzes when that setting changes, felt as a quick double pulse at your usual strength. Nothing is changed permanently.
+[*]Hands the channel back to Google Health, which keeps syncing as normal.
+[/LIST]
+
+A buzz usually lands two to seven seconds after the notification. Now and then one is missed because Google Health was using the channel at that moment; the Buzzes tab lists every miss with its reason.
+
+[HR][/HR]
+
+[SIZE=5][B]Requirements[/B][/SIZE]
+
+[LIST=1]
+[*][B]Google Pixel 11 Pro, Pro XL or Pro Fold[/B] running [B]Android 17 (API 37)[/B].
+[*]A [B]Google Fitbit Air[/B] already paired with the phone through [B]Google Health[/B]. Google Health stays installed, keeps its pairing and keeps syncing as normal.
+[*]Bluetooth on, and your Fitbit Air within reach of the phone.
+[*]No root, no Shizuku and no developer options needed.
+[/LIST]
+
+[B]Permissions[/B]
+[LIST]
+[*][B]Nearby devices:[/B] to reach the paired Fitbit Air over Bluetooth. No scanning, no location.
+[*][B]Notification access:[/B] to see calls and notifications as they arrive. Their content isn't stored; only the app's name and the time are kept for the Buzzes list.
+[*][B]Contacts[/B] (optional): to tell starred favourites and saved contacts from unknown numbers. Only names are looked up, on the phone.
+[*]No internet permission.
+[/LIST]
+
+[HR][/HR]
+
+[SIZE=5][B]Downloads, Support & Pricing[/B][/SIZE]
+
+[LIST]
+[*][B]Google Play Store:[/B] [URL='https://play.google.com/store/apps/details?id=com.mwilky.airalerts']Download on Google Play[/URL]
+[I](Free. No ads, no purchases, no subscriptions.)[/I]
+[*][B]Source Code / Self-Build:[/B] The project is fully open source under the GPL-3.0 licence. You are welcome to compile the APK yourself using standard Gradle commands.
+[/LIST]
+
+[HR][/HR]
+
+[SIZE=5][B]Credits[/B][/SIZE]
+
+[LIST]
+[*]The Bluetooth stack is a Kotlin port of Fitbit's [B]Golden Gate[/B] (Apache License 2.0).
+[*]Fitbit Air protocol details come from the open-source [B]fitbit-air[/B] project by ThoreKoritzius (MIT).
+[*]DTLS by [B]Bouncy Castle[/B].
+[/LIST]
+
+[HR][/HR]
+
+[SIZE=5][B]Disclaimer[/B][/SIZE]
+
+Air Alerts is an unofficial app. It isn't made by, endorsed by or affiliated with Google or Fitbit. It is provided as is, without warranty of any kind. You use it at your own risk: the developer isn't responsible for any damage to your phone, your Fitbit Air or anything else.
+
+[HR][/HR]
+
+
+[SIZE=2][B]Source Code:[/B] [URL]https://github.com/mwilky/air-alerts[/URL]
+[B]License:[/B] GNU General Public License v3.0 (GPL-3.0)[/SIZE]

@@ -1,0 +1,48 @@
+I wanted my Fitbit Air to buzz when my phone rings, so I've written an app for it, and it's now on Google Play as a beta. Air Alerts makes your Fitbit Air buzz for phone calls and notifications.
+
+The short version: it keeps buzzing while a call rings, buzzes once for each notification, and has rules for which callers, contacts and apps buzz and which stay quiet.
+
+It's unofficial. I'm not affiliated with Google or Fitbit, and a Fitbit Air or Google Health update could stop it working until I catch up.
+
+[Google Play](https://play.google.com/store/apps/details?id=com.mwilky.airalerts) · [Source on GitHub](https://github.com/mwilky/air-alerts) · [Screenshots](https://github.com/mwilky/air-alerts#readme)
+
+Free, no ads, no accounts, no analytics. The app doesn't even have the internet permission, so nothing leaves your phone except Bluetooth messages to your Fitbit Air.
+
+**Calls**
+
+* Keeps buzzing, about once a second, while a call rings. Stops as soon as you answer or decline, or the call is missed (a minute at most).
+* Works for normal calls and app calls like WhatsApp. Calls you make don't buzz.
+* Starred contacts always buzz. Separate switches for everyone else in your contacts and for unknown numbers.
+* Caller rules: pick a contact and set them to buzz or stay quiet.
+
+**Notifications**
+
+* One buzz for each notification that makes a sound or vibrates your phone. Silent ones, ongoing ones (music, downloads) and anything Do Not Disturb hides don't buzz.
+* If messages arrive while a buzz is going out they share the next one, so a busy group chat doesn't buzz over and over.
+* Starred contacts always buzz, whatever the app.
+* Contact rules, matched by the sender's name in any app. So a WhatsApp message from one person can buzz, or stay quiet.
+* App rules: any app set to buzz or stay quiet.
+* The order is contact rule, then favourites, then app rule, then a catch-all switch for everything else.
+
+**Other bits**
+
+* Calls and Notifications each have their own on/off switch. Both start off.
+* A status card on Home shows your Fitbit Air is ready, when it last buzzed and its battery level.
+* A Buzzes tab with a Test buzz button, each step of the last buzz with how long it took, and a list of recent buzzes and misses with the reason for a miss.
+* Setup walks you through the permissions and finishes with a test buzz.
+
+**How it works (and the catch)**
+
+* The Fitbit Air has no buzz command for other apps, and it has one secure Bluetooth channel, which Google Health uses.
+* For each buzz I borrow that channel for a few seconds, change the band's buzz-strength setting and change it back (the band buzzes when that setting changes), then hand the channel back to Google Health, which carries on syncing as normal.
+* You feel it as a quick double pulse at your usual strength. Nothing is changed permanently.
+* The catch is the delay: a buzz usually lands two to seven seconds after the notification. Fine for calls and messages, not instant.
+* It never scans for devices. It only connects to the Fitbit Air that's already paired.
+
+**Requirements**
+
+* Pixel 11 Pro, Pro XL or Pro Fold on Android 17.
+* A Fitbit Air already paired with the phone through Google Health. Google Health stays installed and keeps its pairing.
+* Permissions: Nearby devices (to reach the band, no location), notification access (to see calls and notifications arrive, nothing of their content is stored), and Contacts if you want favourites and unknown numbers handled separately. Contacts is optional.
+
+It's open source under GPL-3.0: [github.com/mwilky/air-alerts](https://github.com/mwilky/air-alerts). The Bluetooth side is a Kotlin port of Fitbit's own open-source Golden Gate stack, with protocol details from ThoreKoritzius's fitbit-air project. It's a beta, so if a buzz goes missing, the reason shown on the Buzzes tab is the most useful thing you can tell me. Happy to answer questions or take suggestions.

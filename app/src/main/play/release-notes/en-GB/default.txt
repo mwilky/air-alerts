@@ -1,0 +1,6 @@
+• First release, a beta.
+• Your Fitbit Air keeps buzzing while a call rings, and buzzes once for each notification.
+• Rules for callers, contacts, favourites and apps: buzz or stay quiet.
+• Home shows your Fitbit Air's status, last buzz and battery level.
+• A Buzzes tab with a Test buzz, the steps of the last buzz and recent buzzes and misses.
+• Unofficial: not made by Google or Fitbit.
