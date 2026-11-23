@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Velocity
 import kotlin.math.roundToInt
 import androidx.compose.ui.unit.Dp
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -122,10 +123,11 @@ internal fun rememberEnvironment(askedNearby: Boolean = false, refreshKey: Int =
                 refresh++
             }
         }
-        context.registerReceiver(
+        ContextCompat.registerReceiver(
+            context,
             receiver,
             IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED),
-            Context.RECEIVER_NOT_EXPORTED
+            ContextCompat.RECEIVER_NOT_EXPORTED
         )
         onDispose { context.unregisterReceiver(receiver) }
     }

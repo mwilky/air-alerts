@@ -1,5 +1,5 @@
 [CENTER]
-[SIZE=6][B][APP][Android 17+][BETA] Air Alerts[/B][/SIZE]
+[SIZE=6][B][APP][Android 12+][BETA] Air Alerts[/B][/SIZE]
 [SIZE=4][I]Call and notification buzzes for the Google Fitbit Air[/I][/SIZE]
 
 [/CENTER]
@@ -98,7 +98,8 @@ A buzz usually lands two to seven seconds after the notification. Now and then o
 [SIZE=5][B]Requirements[/B][/SIZE]
 
 [LIST=1]
-[*][B]Google Pixel 11 Pro, Pro XL or Pro Fold[/B] running [B]Android 17 (API 37)[/B].
+[*]An [B]Android phone[/B] running [B]Android 12 (API 31) or later[/B], with Bluetooth Low Energy. Buzzes have been tested on a Pixel 11 Pro; other phones and older Android versions haven't been tried with a Fitbit Air yet.
+[*]If buzzes stop, check the phone's battery settings let Air Alerts run in the background. Some phone makers' battery savers stop apps like this one.
 [*]A [B]Google Fitbit Air[/B] already paired with the phone through [B]Google Health[/B]. Google Health stays installed, keeps its pairing and keeps syncing as normal.
 [*]Bluetooth on, and your Fitbit Air within reach of the phone.
 [*]No root, no Shizuku and no developer options needed.

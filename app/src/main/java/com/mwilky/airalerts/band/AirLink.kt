@@ -9,6 +9,7 @@ import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothProfile
 import android.bluetooth.BluetoothStatusCodes
 import android.content.Context
+import android.os.Build
 import android.os.Handler
 import android.util.Log
 import kotlinx.coroutines.CompletableDeferred
@@ -34,6 +35,7 @@ internal class AirLink(
     private var tx: BluetoothGattCharacteristic? = null
     private val writes = ArrayDeque<ByteArray>()
     private var writing = false
+    private var busyRetries = 0
     private var closed = false
 
     private var connected = CompletableDeferred<Boolean>()
@@ -68,6 +70,15 @@ internal class AirLink(
 
         override fun onDescriptorWrite(g: BluetoothGatt, d: BluetoothGattDescriptor, status: Int) = onThread {
             if (d.uuid == CCCD) subscribed.complete(status == BluetoothGatt.GATT_SUCCESS)
+        }
+
+        // Android 12 calls only this older form, with the bytes left on the characteristic; Android 13
+        // and later call the form below instead, so the version check just guards against both firing.
+        @Deprecated("Android 12 only")
+        @Suppress("DEPRECATION")
+        override fun onCharacteristicChanged(g: BluetoothGatt, c: BluetoothGattCharacteristic) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) return
+            onCharacteristicChanged(g, c, c.value ?: return)
         }
 
         override fun onCharacteristicChanged(g: BluetoothGatt, c: BluetoothGattCharacteristic, value: ByteArray) {
@@ -112,7 +123,7 @@ internal class AirLink(
         } else {
             BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
         }
-        if (g.writeDescriptor(cccd, value) != BluetoothStatusCodes.SUCCESS ||
+        if (!writeDescriptor(g, cccd, value) ||
             withTimeoutOrNull(STEP_TIMEOUT_MS) { subscribed.await() } != true
         ) {
             throw BandException(BuzzError.OUT_OF_REACH, "subscribe failed")
@@ -136,13 +147,48 @@ internal class AirLink(
         val g = gatt ?: return
         val c = tx ?: return
         val packet = writes.removeFirstOrNull() ?: return
-        when (g.writeCharacteristic(c, packet, BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE)) {
-            BluetoothStatusCodes.SUCCESS -> writing = true
+        when (writeCharacteristic(g, c, packet)) {
+            BluetoothStatusCodes.SUCCESS -> {
+                writing = true
+                busyRetries = 0
+            }
             BluetoothStatusCodes.ERROR_GATT_WRITE_REQUEST_BUSY -> {
                 writes.addFirst(packet)
                 handler.postDelayed({ writeNext() }, BUSY_RETRY_MS)
             }
             else -> Log.w(TAG, "write of ${packet.size} bytes refused")
+        }
+    }
+
+    /** The descriptor write, in the form this Android version has. */
+    @Suppress("DEPRECATION")
+    private fun writeDescriptor(g: BluetoothGatt, d: BluetoothGattDescriptor, value: ByteArray): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            g.writeDescriptor(d, value) == BluetoothStatusCodes.SUCCESS
+        } else {
+            d.value = value
+            g.writeDescriptor(d)
+        }
+
+    /**
+     * The characteristic write as a [BluetoothStatusCodes] result. Before Android 13 the call only
+     * says yes or no, and no usually means the stack is still busy with the last packet, so it's
+     * retried as busy for a while before being counted as refused.
+     */
+    @Suppress("DEPRECATION")
+    private fun writeCharacteristic(g: BluetoothGatt, c: BluetoothGattCharacteristic, packet: ByteArray): Int {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return g.writeCharacteristic(c, packet, BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE)
+        }
+        c.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+        c.value = packet
+        return when {
+            g.writeCharacteristic(c) -> BluetoothStatusCodes.SUCCESS
+            ++busyRetries <= MAX_BUSY_RETRIES -> BluetoothStatusCodes.ERROR_GATT_WRITE_REQUEST_BUSY
+            else -> {
+                busyRetries = 0
+                BluetoothStatusCodes.ERROR_UNKNOWN
+            }
         }
     }
 
@@ -174,5 +220,7 @@ internal class AirLink(
         private const val CONNECT_TIMEOUT_MS = 10_000L
         private const val STEP_TIMEOUT_MS = 5_000L
         private const val BUSY_RETRY_MS = 10L
+        /** A second of retries before an Android 12 write counts as refused. */
+        private const val MAX_BUSY_RETRIES = 100
     }
 }

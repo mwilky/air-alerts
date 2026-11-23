@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.Person
 import android.content.ComponentName
 import android.content.Context
+import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
@@ -31,7 +32,9 @@ class AlertListener : NotificationListenerService() {
         if (sbn.packageName == packageName) return
         val n = sbn.notification
         if (n.flags and Notification.FLAG_GROUP_SUMMARY != 0) return
-        val isCall = n.category == Notification.CATEGORY_CALL
+        // A call we buzzed for still counts once answered: Android 12's Phone app drops the call
+        // category from the notification then, and that update is what ends the ringing.
+        val isCall = n.category == Notification.CATEGORY_CALL || sbn.key in buzzedCalls
         val ranking = Ranking().also { rankingMap.getRanking(sbn.key, it) }
         // What Do Not Disturb hides, and whether it's on at all; the matching rule decides.
         val dndHidden = !ranking.matchesInterruptionFilter()
@@ -39,7 +42,7 @@ class AlertListener : NotificationListenerService() {
 
         var ringing: MutableStateFlow<Boolean>? = null
         val kind = if (isCall) {
-            val type = n.extras.getInt(Notification.EXTRA_CALL_TYPE, Notification.CallStyle.CALL_TYPE_UNKNOWN)
+            val type = callType(n)
             Log.d(TAG, "call ${sbn.packageName} type $type")
             if (sbn.key in buzzedCalls) {
                 // The same call updated: answered (ongoing) or being screened ends the ringing.
@@ -94,10 +97,35 @@ class AlertListener : NotificationListenerService() {
         ringingCalls.clear()
     }
 
+    /**
+     * The call's [Notification.CallStyle] type. Android 14 and later say it outright. Before that,
+     * a ringing call opens full screen (Android 12's Phone app does, with Answer and Decline), while
+     * one in progress or being made only stays in the shade. Seen on the Android 12 emulator.
+     */
+    private fun callType(n: Notification): Int {
+        val extras = n.extras
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            return extras.getInt(Notification.EXTRA_CALL_TYPE, Notification.CallStyle.CALL_TYPE_UNKNOWN)
+        }
+        return when {
+            n.fullScreenIntent != null || extras.containsKey(Notification.EXTRA_ANSWER_INTENT) ->
+                Notification.CallStyle.CALL_TYPE_INCOMING
+            n.flags and Notification.FLAG_ONGOING_EVENT != 0 || extras.containsKey(Notification.EXTRA_HANG_UP_INTENT) ->
+                Notification.CallStyle.CALL_TYPE_ONGOING
+            else -> Notification.CallStyle.CALL_TYPE_UNKNOWN
+        }
+    }
+
     /** The first named person, else the title, else the conversation's title. */
     private fun senderName(n: Notification): String {
         val extras = n.extras ?: return ""
-        extras.getParcelableArrayList(Notification.EXTRA_PEOPLE_LIST, Person::class.java)
+        @Suppress("DEPRECATION")
+        val people: List<Person>? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            extras.getParcelableArrayList(Notification.EXTRA_PEOPLE_LIST, Person::class.java)
+        } else {
+            extras.getParcelableArrayList(Notification.EXTRA_PEOPLE_LIST)
+        }
+        people
             ?.firstOrNull { !it.name.isNullOrBlank() }?.name?.toString()?.let { return it }
         extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()?.takeIf { it.isNotBlank() }?.let { return it }
         return extras.getCharSequence(Notification.EXTRA_CONVERSATION_TITLE)?.toString().orEmpty()

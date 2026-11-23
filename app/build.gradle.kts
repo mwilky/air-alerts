@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "com.mwilky.airalerts"
-        minSdk = 37
+        minSdk = 31
         targetSdk = 37
         versionCode = 1
         versionName = "0.9.0"

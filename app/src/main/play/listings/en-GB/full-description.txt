@@ -55,4 +55,4 @@ PERMISSIONS
 OPEN SOURCE
 Air Alerts costs nothing and its source is on GitHub under the GPL-3.0 licence: https://github.com/mwilky/air-alerts
 
-Requires a Pixel 11 Pro, Pixel 11 Pro XL or Pixel 11 Pro Fold running Android 17, and a Google Fitbit Air paired through Google Health.
+Requires a phone running Android 12 or later with Bluetooth Low Energy, and a Google Fitbit Air paired through Google Health.

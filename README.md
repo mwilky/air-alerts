@@ -64,7 +64,8 @@ Air Alerts is unofficial. It isn't made by, or affiliated with, Google or Fitbit
 
 ## Requirements
 
-- Google Pixel 11 Pro, Pixel 11 Pro XL or Pixel 11 Pro Fold running Android 17 (API 37).
+- An Android phone running Android 12 (API 31) or later, with Bluetooth Low Energy. Buzzes have been tested on a Pixel 11 Pro; other phones and older Android versions haven't been tried with a Fitbit Air yet.
+- If buzzes stop, check the phone's battery settings let Air Alerts run in the background. Some phone makers' battery savers stop apps like this one.
 - A Google Fitbit Air already paired with the phone through Google Health. Google Health stays installed, keeps its pairing and keeps syncing as normal.
 - Bluetooth on, and your Fitbit Air within reach of the phone.
 
@@ -104,7 +105,7 @@ Standard Android Gradle project with a single `:app` module. Open in Android Stu
 ./gradlew testDebugUnitTest
 ```
 
-Anything that touches the band needs a physical Pixel and a Fitbit Air.
+Anything that touches the band needs a physical Android phone and a Fitbit Air.
 
 ## Pricing
 

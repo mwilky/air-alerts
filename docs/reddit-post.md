@@ -47,7 +47,7 @@ Free, no ads, no accounts, no analytics. The app doesn't even have the internet 
 
 **Requirements**
 
-* Pixel 11 Pro, Pro XL or Pro Fold on Android 17.
+* An Android phone on Android 12 or later, with Bluetooth Low Energy.
 * A Fitbit Air already paired with the phone through Google Health. Google Health stays installed and keeps its pairing.
 * Permissions: Nearby devices (to reach the band, no location), notification access (to see calls and notifications arrive, nothing of their content is stored), and Contacts if you want favourites and unknown numbers handled separately. Contacts is optional.
 
