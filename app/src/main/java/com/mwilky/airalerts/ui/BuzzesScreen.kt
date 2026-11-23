@@ -5,12 +5,27 @@ package com.mwilky.airalerts.ui
 import android.content.Context
 import android.text.format.DateFormat
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -164,8 +179,28 @@ private fun ActivityList(entries: List<ActivityEntry>) {
         EmptyRuleHint(stringResource(R.string.activity_empty), Icons.Rounded.History)
         return
     }
-    Column(verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)) {
-        entries.forEachIndexed { index, entry ->
+    // Its own scrolling box, so 30 buzzes don't make the whole page a long scroll. Capped rather than
+    // filling the screen, as the card and steps above leave too little room on a phone; a part-cut row
+    // at the bottom shows there's more. Clipped to a single item's shape so rows scroll under its corners.
+    // Once it overflows it gets a slim scroll thumb, so it reads as a box that scrolls.
+    val listState = rememberLazyListState()
+    val scrollable = listState.canScrollForward || listState.canScrollBackward
+    val shape = ListItemDefaults.segmentedShapes(index = 0, count = 1).shape
+    val thumb = MaterialTheme.colorScheme.onSurfaceVariant
+    LazyColumn(
+        state = listState,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = ActivityListMaxHeight)
+            .nestedScroll(KeepFlingInside)
+            .clip(shape)
+            .drawWithContent {
+                drawContent()
+                if (scrollable) drawScrollThumb(listState, thumb)
+            },
+        verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)
+    ) {
+        itemsIndexed(entries, key = { index, entry -> "$index-${entry.atMillis}" }) { index, entry ->
             val tint = if (entry.buzzed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
             SegmentedListItem(
                 shapes = ListItemDefaults.segmentedShapes(index = index, count = entries.size),
@@ -203,6 +238,46 @@ private fun ActivityList(entries: List<ActivityEntry>) {
             }
         }
     }
+}
+
+/** About four and a half activity rows. */
+private val ActivityListMaxHeight = 340.dp
+
+/**
+ * Keeps a fling's leftover momentum in the list once it reaches an end, so a fast flick doesn't
+ * carry on into the page. A drag's leftover still passes up, so the page can be dragged from the list.
+ */
+private object KeepFlingInside : NestedScrollConnection {
+    override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset =
+        if (source == NestedScrollSource.SideEffect) available else Offset.Zero
+
+    override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity = available
+}
+
+/**
+ * A slim scroll thumb down the list's right edge. Rows are near enough the same height that the
+ * average visible row stands in for the rest when sizing and placing it.
+ */
+private fun DrawScope.drawScrollThumb(state: LazyListState, color: Color) {
+    val info = state.layoutInfo
+    val visible = info.visibleItemsInfo
+    if (visible.isEmpty() || info.totalItemsCount == 0) return
+    val row = visible.sumOf { it.size }.toFloat() / visible.size + info.mainAxisItemSpacing
+    val content = row * info.totalItemsCount - info.mainAxisItemSpacing
+    val viewport = size.height
+    if (content <= viewport) return
+    val scrolled = state.firstVisibleItemIndex * row + state.firstVisibleItemScrollOffset
+    val width = 4.dp.toPx()
+    val inset = 6.dp.toPx()
+    val track = viewport - inset * 2
+    val height = (track * viewport / content).coerceAtLeast(32.dp.toPx())
+    val top = inset + (track - height) * (scrolled / (content - viewport)).coerceIn(0f, 1f)
+    drawRoundRect(
+        color = color.copy(alpha = 0.5f),
+        topLeft = Offset(size.width - inset - width, top),
+        size = Size(width, height),
+        cornerRadius = CornerRadius(width / 2)
+    )
 }
 
 @Composable
