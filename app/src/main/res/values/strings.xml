@@ -2,6 +2,8 @@
 <resources>
     <!-- App -->
     <string name="app_name">Air Alerts</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_activity">Buzzes</string>
 
     <!-- Band card -->
     <string name="band_title">Google Fitbit Air</string>
