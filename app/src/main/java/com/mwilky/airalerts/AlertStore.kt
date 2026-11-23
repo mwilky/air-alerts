@@ -1,6 +1,7 @@
 package com.mwilky.airalerts
 
 import android.content.Context
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -17,10 +18,18 @@ import kotlinx.coroutines.flow.map
 import org.json.JSONArray
 import org.json.JSONObject
 
+/** Each page's switch, its default rows, and its custom rules. See [RuleMatch] for the order. */
 data class AlertSettings(
-    val enabled: Boolean = false,
-    val calls: Boolean = true,
-    val notifications: Boolean = true
+    val calls: Boolean = false,
+    val notifications: Boolean = false,
+    val callFavourites: Boolean = false,
+    val callContacts: Boolean = true,
+    val callUnknown: Boolean = true,
+    val callerRules: List<ContactRule> = emptyList(),
+    val notifFavourites: Boolean = false,
+    val notifOthers: Boolean = true,
+    val senderRules: List<ContactRule> = emptyList(),
+    val appRules: List<AppRule> = emptyList()
 )
 
 enum class AlertKind { TEST, CALL, NOTIFICATION }
@@ -42,10 +51,19 @@ private val Context.dataStore by preferencesDataStore("alerts")
 /** Settings, the recent activity list, the steps of the last buzz and the band's battery, kept across restarts. */
 class AlertStore(private val context: Context) {
     val settings: Flow<AlertSettings> = context.dataStore.data.map { p ->
+        // Before the Calls and Notifications pages one switch covered both, with a row each.
+        val wasOn = p[ENABLED] ?: false
         AlertSettings(
-            enabled = p[ENABLED] ?: false,
-            calls = p[CALLS] ?: true,
-            notifications = p[NOTIFICATIONS] ?: true
+            calls = p[CALLS_ON] ?: (wasOn && (p[CALLS] ?: true)),
+            notifications = p[NOTIFICATIONS_ON] ?: (wasOn && (p[NOTIFICATIONS] ?: true)),
+            callFavourites = p[CALL_FAVOURITES] ?: false,
+            callContacts = p[CALL_CONTACTS] ?: true,
+            callUnknown = p[CALL_UNKNOWN] ?: true,
+            callerRules = RuleJson.decodeContacts(p[CALLER_RULES]),
+            notifFavourites = p[NOTIF_FAVOURITES] ?: false,
+            notifOthers = p[NOTIF_OTHERS] ?: true,
+            senderRules = RuleJson.decodeContacts(p[SENDER_RULES]),
+            appRules = RuleJson.decodeApps(p[APP_RULES])
         )
     }
 
@@ -64,9 +82,37 @@ class AlertStore(private val context: Context) {
 
     suspend fun currentSettings() = settings.first()
 
-    suspend fun setEnabled(value: Boolean) = context.dataStore.edit { it[ENABLED] = value }
-    suspend fun setCalls(value: Boolean) = context.dataStore.edit { it[CALLS] = value }
-    suspend fun setNotifications(value: Boolean) = context.dataStore.edit { it[NOTIFICATIONS] = value }
+    suspend fun setCalls(value: Boolean) = context.dataStore.edit { it[CALLS_ON] = value }
+    suspend fun setNotifications(value: Boolean) = context.dataStore.edit { it[NOTIFICATIONS_ON] = value }
+    suspend fun setCallFavourites(value: Boolean) = context.dataStore.edit { it[CALL_FAVOURITES] = value }
+    suspend fun setCallContacts(value: Boolean) = context.dataStore.edit { it[CALL_CONTACTS] = value }
+    suspend fun setCallUnknown(value: Boolean) = context.dataStore.edit { it[CALL_UNKNOWN] = value }
+    suspend fun setNotifFavourites(value: Boolean) = context.dataStore.edit { it[NOTIF_FAVOURITES] = value }
+    suspend fun setNotifOthers(value: Boolean) = context.dataStore.edit { it[NOTIF_OTHERS] = value }
+
+    /** Replaces the rule with the same id or name (one rule per contact), else adds it. */
+    suspend fun saveCallerRule(rule: ContactRule) = editContacts(CALLER_RULES) { upsert(it, rule) }
+    suspend fun deleteCallerRule(id: String) = editContacts(CALLER_RULES) { rules -> rules.filterNot { it.id == id } }
+    suspend fun saveSenderRule(rule: ContactRule) = editContacts(SENDER_RULES) { upsert(it, rule) }
+    suspend fun deleteSenderRule(id: String) = editContacts(SENDER_RULES) { rules -> rules.filterNot { it.id == id } }
+
+    suspend fun saveAppRule(rule: AppRule) = context.dataStore.edit { p ->
+        val rules = RuleJson.decodeApps(p[APP_RULES])
+        val i = rules.indexOfFirst { it.packageName == rule.packageName }
+        p[APP_RULES] = RuleJson.encodeApps(if (i >= 0) rules.toMutableList().also { it[i] = rule } else rules + rule)
+    }
+
+    suspend fun deleteAppRule(packageName: String) = context.dataStore.edit { p ->
+        p[APP_RULES] = RuleJson.encodeApps(RuleJson.decodeApps(p[APP_RULES]).filterNot { it.packageName == packageName })
+    }
+
+    private suspend fun editContacts(key: Preferences.Key<String>, change: (List<ContactRule>) -> List<ContactRule>) =
+        context.dataStore.edit { p -> p[key] = RuleJson.encodeContacts(change(RuleJson.decodeContacts(p[key]))) }
+
+    private fun upsert(rules: List<ContactRule>, rule: ContactRule): List<ContactRule> {
+        val i = rules.indexOfFirst { it.id == rule.id || it.name.trim().equals(rule.name.trim(), ignoreCase = true) }
+        return if (i >= 0) rules.toMutableList().also { it[i] = rule.copy(id = rules[i].id) } else rules + rule
+    }
 
     suspend fun addActivity(entry: ActivityEntry) = context.dataStore.edit { p ->
         p[ACTIVITY] = encode((listOf(entry) + decode(p[ACTIVITY])).take(MAX_ACTIVITY))
@@ -165,6 +211,16 @@ class AlertStore(private val context: Context) {
         val ENABLED = booleanPreferencesKey("enabled")
         val CALLS = booleanPreferencesKey("calls")
         val NOTIFICATIONS = booleanPreferencesKey("notifications")
+        val CALLS_ON = booleanPreferencesKey("calls_on")
+        val NOTIFICATIONS_ON = booleanPreferencesKey("notifications_on")
+        val CALL_FAVOURITES = booleanPreferencesKey("call_favourites")
+        val CALL_CONTACTS = booleanPreferencesKey("call_contacts")
+        val CALL_UNKNOWN = booleanPreferencesKey("call_unknown")
+        val CALLER_RULES = stringPreferencesKey("caller_rules")
+        val NOTIF_FAVOURITES = booleanPreferencesKey("notif_favourites")
+        val NOTIF_OTHERS = booleanPreferencesKey("notif_others")
+        val SENDER_RULES = stringPreferencesKey("sender_rules")
+        val APP_RULES = stringPreferencesKey("app_rules")
         val ACTIVITY = stringPreferencesKey("activity")
         val LAST_RUN = stringPreferencesKey("last_run")
         val BATTERY = stringPreferencesKey("battery")

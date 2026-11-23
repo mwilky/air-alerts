@@ -2,6 +2,7 @@ package com.mwilky.airalerts
 
 import android.app.Notification
 import android.app.NotificationManager
+import android.app.Person
 import android.content.ComponentName
 import android.content.Context
 import android.service.notification.NotificationListenerService
@@ -61,11 +62,16 @@ class AlertListener : NotificationListenerService() {
             AlertKind.NOTIFICATION
         }
         val appName = appLabel(sbn.packageName)
+        // The caller or sender as the notification shows them: the saved name for a contact.
+        val person = senderName(n)
         app.scope.launch {
             val settings = app.store.currentSettings()
-            val wanted = settings.enabled && when (kind) {
-                AlertKind.CALL -> settings.calls
-                else -> settings.notifications
+            val isFavourite = { name: String -> Contacts.isFavourite(this@AlertListener, name) }
+            val wanted = when (kind) {
+                AlertKind.CALL -> settings.calls &&
+                    RuleMatch.callBuzzes(settings, person, isFavourite) { Contacts.isSaved(this@AlertListener, it) }
+                else -> settings.notifications &&
+                    RuleMatch.notificationBuzzes(settings, sbn.packageName, person, isFavourite)
             }
             if (wanted) app.buzzer.request(AlertBuzzer.Trigger(kind, appName, sbn.postTime, ringing))
         }
@@ -80,6 +86,15 @@ class AlertListener : NotificationListenerService() {
         // We'd no longer hear the call end, so stop any buzzing now.
         ringingCalls.values.forEach { it.value = false }
         ringingCalls.clear()
+    }
+
+    /** The first named person, else the title, else the conversation's title. */
+    private fun senderName(n: Notification): String {
+        val extras = n.extras ?: return ""
+        extras.getParcelableArrayList(Notification.EXTRA_PEOPLE_LIST, Person::class.java)
+            ?.firstOrNull { !it.name.isNullOrBlank() }?.name?.toString()?.let { return it }
+        extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()?.takeIf { it.isNotBlank() }?.let { return it }
+        return extras.getCharSequence(Notification.EXTRA_CONVERSATION_TITLE)?.toString().orEmpty()
     }
 
     private fun appLabel(pkg: String): String = runCatching {

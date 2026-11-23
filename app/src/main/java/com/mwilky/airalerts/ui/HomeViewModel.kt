@@ -8,6 +8,8 @@ import com.mwilky.airalerts.AirAlertsApp
 import com.mwilky.airalerts.AlertBuzzer
 import com.mwilky.airalerts.AlertKind
 import com.mwilky.airalerts.AlertSettings
+import com.mwilky.airalerts.AppRule
+import com.mwilky.airalerts.ContactRule
 import com.mwilky.airalerts.band.BandBattery
 import com.mwilky.airalerts.band.BuzzRun
 import kotlinx.coroutines.flow.SharingStarted
@@ -53,7 +55,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun testBuzz() = app.buzzer.request(AlertBuzzer.Trigger(AlertKind.TEST))
 
-    fun setEnabled(value: Boolean) = viewModelScope.launch { app.store.setEnabled(value) }
     fun setCalls(value: Boolean) = viewModelScope.launch { app.store.setCalls(value) }
     fun setNotifications(value: Boolean) = viewModelScope.launch { app.store.setNotifications(value) }
+    fun setCallFavourites(value: Boolean) = viewModelScope.launch { app.store.setCallFavourites(value) }
+    fun setCallContacts(value: Boolean) = viewModelScope.launch { app.store.setCallContacts(value) }
+    fun setCallUnknown(value: Boolean) = viewModelScope.launch { app.store.setCallUnknown(value) }
+    fun setNotifFavourites(value: Boolean) = viewModelScope.launch { app.store.setNotifFavourites(value) }
+    fun setNotifOthers(value: Boolean) = viewModelScope.launch { app.store.setNotifOthers(value) }
+
+    fun saveCallerRule(rule: ContactRule) = viewModelScope.launch { app.store.saveCallerRule(rule) }
+    fun deleteCallerRule(rule: ContactRule) = viewModelScope.launch { app.store.deleteCallerRule(rule.id) }
+    fun saveSenderRule(rule: ContactRule) = viewModelScope.launch { app.store.saveSenderRule(rule) }
+    fun deleteSenderRule(rule: ContactRule) = viewModelScope.launch { app.store.deleteSenderRule(rule.id) }
+    fun saveAppRule(rule: AppRule) = viewModelScope.launch { app.store.saveAppRule(rule) }
+    fun deleteAppRule(rule: AppRule) = viewModelScope.launch { app.store.deleteAppRule(rule.packageName) }
 }

@@ -20,10 +20,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -39,14 +45,19 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import com.mwilky.airalerts.R
 
 // The shared building blocks, so this app's screens read the same way.
 
@@ -226,6 +237,84 @@ fun SwitchRow(
             }
             Switch(checked = checked, onCheckedChange = onCheckedChange)
         }
+    }
+}
+
+/**
+ * One custom rule in a segmented group. A rule here is only buzz or stay quiet,
+ * so a tap flips the switch rather than opening an editor; long-press offers delete.
+ */
+@Composable
+fun RuleListItem(
+    index: Int,
+    count: Int,
+    title: String,
+    buzz: Boolean,
+    onBuzzChange: (Boolean) -> Unit,
+    onDelete: () -> Unit,
+    leading: @Composable () -> Unit
+) {
+    var menuOpen by remember { mutableStateOf(false) }
+    Box {
+        SegmentedListItem(
+            onClick = { onBuzzChange(!buzz) },
+            onLongClick = { menuOpen = true },
+            onLongClickLabel = stringResource(R.string.rule_delete),
+            shapes = ListItemDefaults.segmentedShapes(index = index, count = count),
+            colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+            verticalAlignment = Alignment.CenterVertically,
+            leadingContent = leading,
+            supportingContent = {
+                AnimatedText(text = stringResource(if (buzz) R.string.rule_buzzes else R.string.rule_quiet))
+            },
+            trailingContent = {
+                Switch(checked = buzz, onCheckedChange = onBuzzChange)
+            }
+        ) {
+            Text(title)
+        }
+        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.rule_delete)) },
+                leadingIcon = { Icon(Icons.Rounded.Delete, contentDescription = null) },
+                onClick = {
+                    menuOpen = false
+                    onDelete()
+                }
+            )
+        }
+    }
+}
+
+/** A contact rule's leading badge. */
+@Composable
+fun ContactBadge() {
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primaryContainer),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            Icons.Rounded.Person,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            modifier = Modifier.size(20.dp)
+        )
+    }
+}
+
+@Composable
+fun AddRuleButton(text: String, icon: ImageVector, onClick: () -> Unit) {
+    FilledTonalButton(
+        onClick = onClick,
+        shapes = ButtonDefaults.shapes(),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+        Text(text)
     }
 }
 

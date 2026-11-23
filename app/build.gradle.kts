@@ -57,4 +57,5 @@ dependencies {
     // The Fitbit Air's secure channel is DTLS 1.2 with a pre-shared key, with the phone as the server.
     implementation(libs.bctls)
     testImplementation(libs.junit)
+    testImplementation(libs.json)
 }

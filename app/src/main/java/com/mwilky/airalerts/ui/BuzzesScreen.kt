@@ -234,7 +234,7 @@ private val PreviewActivity = listOf(
 fun BuzzesScreenPreviewBuzzing() {
     AirAlertsTheme {
         BuzzesContent(
-            state = HomeUiState(settings = AlertSettings(enabled = true), busy = true, lastRun = PreviewRun, activity = PreviewActivity),
+            state = HomeUiState(settings = AlertSettings(calls = true, notifications = true), busy = true, lastRun = PreviewRun, activity = PreviewActivity),
             environment = Environment(),
             onTestBuzz = {}
         )

@@ -49,20 +49,54 @@
     <string name="error_rejected">Your Fitbit Air refused the buzz.</string>
     <string name="error_unexpected">Something unexpected went wrong (%1$s).</string>
 
-    <!-- Alerts switch and rows -->
-    <string name="hero_title">Buzz for alerts</string>
-    <string name="hero_status_on">On: %1$s</string>
-    <string name="hero_what_both">Calls and notifications</string>
-    <string name="hero_what_calls">Calls only</string>
-    <string name="hero_what_notifications">Notifications only</string>
-    <string name="hero_what_nothing">Calls and Notifications are both off</string>
+    <!-- Home pages -->
+    <string name="home_tab_calls">Calls</string>
+    <string name="home_tab_notifications">Notifications</string>
+    <string name="hero_status_on">On · %1$s</string>
     <string name="hero_status_off">Off</string>
-    <string name="section_off_hint">Nothing will buzz your Fitbit Air while this is off.</string>
-    <string name="alerts_header">Alerts</string>
-    <string name="calls_title">Calls</string>
+    <plurals name="rule_count">
+        <item quantity="one">%1$d rule</item>
+        <item quantity="other">%1$d rules</item>
+    </plurals>
+    <string name="rule_count_none">No rules</string>
+    <string name="rule_buzzes">Buzzes</string>
+    <string name="rule_quiet">Stays quiet</string>
+    <string name="rule_delete">Delete</string>
+
+    <!-- Calls page -->
+    <string name="calls_hero_title">Buzz for calls</string>
+    <string name="calls_off_hint">Calls don\'t buzz your Fitbit Air while this is off. Your rules are kept.</string>
     <string name="calls_desc">Keeps buzzing while a call rings, including calls in apps like WhatsApp. Calls you make don\'t buzz.</string>
-    <string name="notifications_title">Notifications</string>
+    <string name="calls_fav_title">Favourite contacts</string>
+    <string name="calls_fav_desc">Calls from contacts you\'ve starred always buzz.</string>
+    <string name="calls_contacts_title">All other contacts</string>
+    <string name="calls_contacts_desc">Calls from everyone else saved in Contacts.</string>
+    <string name="calls_unknown_title">Unknown numbers</string>
+    <string name="calls_unknown_desc">Calls from numbers that aren\'t saved in Contacts.</string>
+    <string name="calls_rules_header">Caller rules (%1$d)</string>
+    <string name="calls_no_rules">No caller rules yet. Add one to make a contact always buzz or always stay quiet.</string>
+    <string name="calls_add_btn">Add caller</string>
+
+    <!-- Notifications page -->
+    <string name="notifs_hero_title">Buzz for notifications</string>
+    <string name="notifs_off_hint">Notifications don\'t buzz your Fitbit Air while this is off. Your rules are kept.</string>
     <string name="notifications_desc">One buzz for each notification that makes a sound or vibrates the phone. Silent ones don\'t buzz.</string>
+    <string name="notifs_fav_title">Favourite contacts</string>
+    <string name="notifs_fav_desc">Notifications from contacts you\'ve starred always buzz, whatever the app.</string>
+    <string name="notifs_others_title">All other notifications</string>
+    <string name="notifs_others_desc">Anything your rules don\'t cover.</string>
+    <string name="notifs_contact_rules_header">Contact rules (%1$d)</string>
+    <string name="notifs_no_contact_rules">No contact rules yet. Add one to make a contact\'s messages always buzz or always stay quiet, in any app.</string>
+    <string name="notifs_add_contact_btn">Add contact</string>
+    <string name="notifs_app_rules_header">App rules (%1$d)</string>
+    <string name="notifs_no_app_rules">No app rules yet. Add one to make an app always buzz or always stay quiet.</string>
+    <string name="notifs_add_app_btn">Add app</string>
+
+    <!-- App picker -->
+    <string name="app_picker_title">Choose an app</string>
+    <string name="app_picker_search">Search apps</string>
+    <string name="app_picker_none">No apps found</string>
+    <string name="dialog_cancel">Cancel</string>
 
     <!-- Activity -->
     <string name="activity_header">Activity</string>
@@ -96,6 +130,12 @@
     <string name="access_status">Not allowed</string>
     <string name="access_desc">Air Alerts needs notification access to see calls and notifications as they arrive.</string>
     <string name="access_btn">Allow access</string>
+
+    <!-- Problem card: Contacts permission -->
+    <string name="contacts_title">Contacts</string>
+    <string name="contacts_status">Not allowed</string>
+    <string name="contacts_desc">Air Alerts needs Android\'s Contacts permission to tell your favourites and saved contacts apart.</string>
+    <string name="contacts_btn">Allow</string>
 
     <!-- Other -->
     <string name="unofficial_note">Air Alerts isn\'t made by Google or Fitbit. A Fitbit Air update could stop it working.</string>
