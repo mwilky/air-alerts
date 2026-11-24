@@ -6,7 +6,7 @@ It's unofficial. I'm not affiliated with Google or Fitbit, and a Fitbit Air or G
 
 [Google Play](https://play.google.com/store/apps/details?id=com.mwilky.airalerts) · [Source on GitHub](https://github.com/mwilky/air-alerts) · [Screenshots](https://github.com/mwilky/air-alerts#readme)
 
-Free, no ads, no accounts, no analytics. The app doesn't even have the internet permission, so nothing leaves your phone except Bluetooth messages to your Fitbit Air.
+Everything is free for 30 days. After that the buzzes stop until you unlock it with a one-off purchase on Google Play, and that's it for good: no subscription, no ads, no accounts, no analytics. Your rules and settings are kept while it's locked. The app doesn't even have the internet permission, so nothing leaves your phone except Bluetooth messages to your Fitbit Air.
 
 **Calls**
 

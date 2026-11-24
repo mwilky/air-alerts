@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.mwilky.airalerts.band.BandBattery
@@ -132,6 +133,18 @@ class AlertStore(private val context: Context) {
 
     /** Ends onboarding. Calls and notifications stay off until they're switched on at Home. */
     suspend fun completeOnboarding() = context.dataStore.edit { it[ONBOARDED] = true }
+
+    /** When the free trial began: the first time the app was opened. */
+    val trialStartMillis: Flow<Long?> = context.dataStore.data.map { it[TRIAL_START] }
+
+    /** Whether Google Play last said the unlock was bought. */
+    val purchased: Flow<Boolean> = context.dataStore.data.map { it[PURCHASED] ?: false }
+
+    suspend fun startTrialIfNeeded() = context.dataStore.edit {
+        if (it[TRIAL_START] == null) it[TRIAL_START] = System.currentTimeMillis()
+    }
+
+    suspend fun setPurchased(value: Boolean) = context.dataStore.edit { it[PURCHASED] = value }
 
     suspend fun currentSettings() = settings.first()
 
@@ -303,6 +316,8 @@ class AlertStore(private val context: Context) {
         val ACTIVITY = stringPreferencesKey("activity")
         val LAST_RUN = stringPreferencesKey("last_run")
         val BATTERY = stringPreferencesKey("battery")
+        val TRIAL_START = longPreferencesKey("trial_start")
+        val PURCHASED = booleanPreferencesKey("purchased")
         const val MAX_ACTIVITY = 30
     }
 }

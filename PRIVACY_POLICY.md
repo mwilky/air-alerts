@@ -1,6 +1,6 @@
 # Privacy Policy for Air Alerts
 
-**Last updated:** 23 November 2026
+**Last updated:** 24 November 2026
 
 **Air Alerts** ("we", "our", or "the app") is developed by **mwilky**. We are committed to protecting your privacy. This Privacy Policy outlines how your information is handled when you use Air Alerts.
 
@@ -13,6 +13,7 @@ Air Alerts operates **entirely on your device**.
 - We do **not** collect, store, transmit, sell, or share any personal information.
 - The app has **no internet permission**, so it cannot connect to any server or cloud service. The only thing that leaves your phone is Bluetooth messages to your own Fitbit Air, and those carry a buzz or a battery request, never your notifications, contacts or caller names.
 - The app does **not** include third-party tracking, analytics, or advertising SDKs, and has no accounts.
+- The one-off purchase that unlocks the app after the free trial is handled by **Google Play** (see section 4). Air Alerts never sees your payment details.
 
 ---
 
@@ -41,22 +42,31 @@ Everything Air Alerts keeps is stored locally on your device, in the app's priva
 - The last 30 buzzes: the app's name, the time and the outcome (buzzed, or missed and why).
 - The steps of the last buzz and how long each took.
 - The last battery reading from your Fitbit Air.
+- The date your free trial started, and whether the app has been unlocked.
 
 None of it leaves your phone. Uninstalling the app, or clearing its data in Android Settings, removes it all.
 
 ---
 
-## 4. Children's Privacy
+## 4. Purchases (Google Play Billing)
+Air Alerts is free for 30 days, and a one-off purchase unlocks it after that. The app uses Google Play Billing for this.
+- The purchase is handled entirely by Google Play, under [Google's Privacy Policy](https://policies.google.com/privacy). Your payment details and Google account stay with Google; Air Alerts never sees them.
+- Air Alerts asks Google Play, on your phone, whether the unlock has been bought. It sends nothing else, and nothing about your notifications, contacts, callers or rules is shared with Google Play.
+- The only things the app keeps are the date the trial started and whether it has been unlocked, both on your phone (see section 3).
+
+---
+
+## 5. Children's Privacy
 Air Alerts does not collect any personal information from anyone, including children under the age of 13.
 
 ---
 
-## 5. Changes to This Privacy Policy
+## 6. Changes to This Privacy Policy
 We may update our Privacy Policy from time to time. Any updates will be posted with a revised "Last updated" date.
 
 ---
 
-## 6. Contact Us
+## 7. Contact Us
 If you have any questions or suggestions about this Privacy Policy, please contact us at:
 - **Developer:** mwilky
 - **Support / Inquiries:** mwilky.dev@gmail.com

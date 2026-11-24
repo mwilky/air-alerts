@@ -65,6 +65,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mwilky.airalerts.ActivityEntry
+import com.mwilky.airalerts.Licensing
 import com.mwilky.airalerts.AlertKind
 import com.mwilky.airalerts.AlertListener
 import com.mwilky.airalerts.AlertSettings
@@ -282,7 +283,8 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
             onAllowNotificationAccess = { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) },
             onAllowContacts = askContacts
         ),
-        onTestBuzz = viewModel::testBuzz
+        onTestBuzz = viewModel::testBuzz,
+        onBuy = { activity?.let(viewModel::buy) }
     )
 
     editing?.let { target ->
@@ -362,6 +364,7 @@ fun HomeContent(
     actions: HomeActions,
     problems: ProblemActions,
     onTestBuzz: () -> Unit = {},
+    onBuy: () -> Unit = {},
     initialPage: Int = 0
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -394,6 +397,7 @@ fun HomeContent(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 ProblemCard(environment, state.settings, problems)
+                state.licence?.takeIf { !it.purchased }?.let { LicenseCard(it, onBuy) }
             }
             HomePageToggle(
                 selectedIndex = pagerState.currentPage,
@@ -728,6 +732,17 @@ fun HomeScreenPreviewNotifications() {
 @Composable
 fun HomeScreenPreviewFirstRun() {
     PreviewHome(HomeUiState(), Environment(nearbyAllowed = false))
+}
+
+@Preview(showBackground = true, heightDp = 1400)
+@Composable
+fun HomeScreenPreviewTrialEnded() {
+    PreviewHome(
+        HomeUiState(
+            settings = previewSettings,
+            licence = Licensing.Status(purchased = false, trialStartMillis = 0, now = 31L * 24 * 60 * 60 * 1000, priceText = "£2.99")
+        )
+    )
 }
 
 @Preview(showBackground = true)

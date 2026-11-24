@@ -97,6 +97,10 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     // The Fitbit Air's secure channel is DTLS 1.2 with a pre-shared key, with the phone as the server.
     implementation(libs.bctls)
+    // The one-off unlock after the free trial.
+    implementation(libs.billing.ktx)
+    // Play Billing pulls in an old androidx.fragment through play-services-base; use a current one.
+    implementation(libs.androidx.fragment)
     testImplementation(libs.junit)
     testImplementation(libs.json)
 }

@@ -1,5 +1,6 @@
 package com.mwilky.airalerts.ui
 
+import android.app.Activity
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,6 +12,7 @@ import com.mwilky.airalerts.AlertSettings
 import com.mwilky.airalerts.AppRule
 import com.mwilky.airalerts.ContactRule
 import com.mwilky.airalerts.DefaultRow
+import com.mwilky.airalerts.Licensing
 import com.mwilky.airalerts.QuietHoursRepeat
 import com.mwilky.airalerts.QuietWindow
 import com.mwilky.airalerts.RuleConditions
@@ -29,7 +31,9 @@ data class HomeUiState(
     val lastRun: BuzzRun? = null,
     val activity: List<ActivityEntry> = emptyList(),
     val battery: BandBattery? = null,
-    val checkingBattery: Boolean = false
+    val checkingBattery: Boolean = false,
+    /** The free trial or unlock; null in previews that don't show it. */
+    val licence: Licensing.Status? = null
 )
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
@@ -48,6 +52,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         state.copy(battery = battery)
     }.combine(app.band.checkingBattery) { state, checking ->
         state.copy(checkingBattery = checking)
+    }.combine(app.licensing.status) { state, licence ->
+        state.copy(licence = licence)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 
     /** On the app's scope, so leaving the screen doesn't cut the band session short. */
@@ -59,6 +65,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun testBuzz() = app.buzzer.request(AlertBuzzer.Trigger(AlertKind.TEST))
+
+    fun buy(activity: Activity) = app.licensing.purchase(activity)
 
     fun setCalls(value: Boolean) = viewModelScope.launch { app.store.setCalls(value) }
     fun setNotifications(value: Boolean) = viewModelScope.launch { app.store.setNotifications(value) }

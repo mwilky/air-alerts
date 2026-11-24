@@ -186,6 +186,7 @@
     <string name="feature_rules_desc">Choose which callers, contacts, favourites and apps buzz or stay quiet.</string>
     <string name="onboarding_band_title">Your Fitbit Air</string>
     <string name="onboarding_band_body">Air Alerts reaches the Fitbit Air that Google Health has already paired with this phone. Check these three things first.</string>
+    <string name="onboarding_band_skip_hint">You can carry on, but nothing buzzes until these are sorted. The Home tab shows what\'s still needed.</string>
     <string name="nearby_status_ok">Allowed</string>
     <string name="nearby_desc_ok">Air Alerts can reach your Fitbit Air.</string>
     <string name="bluetooth_on_status">On</string>
@@ -210,4 +211,26 @@
     <!-- Other -->
     <string name="unofficial_note">Air Alerts isn\'t made by Google or Fitbit. A Fitbit Air update could stop it working.</string>
     <string name="listener_label">Air Alerts</string>
+
+    <!-- Free trial and unlock -->
+    <string name="license_title_trial">Free trial</string>
+    <string name="license_title_expired">Free trial over</string>
+    <string name="license_title_unlocked">Full version</string>
+    <string name="license_status_expired">Locked</string>
+    <string name="license_status_unlocked">Unlocked</string>
+    <plurals name="license_days_left">
+        <item quantity="one">%1$d day left</item>
+        <item quantity="other">%1$d days left</item>
+    </plurals>
+    <string name="license_desc_trial">Everything is free while the trial runs. After that, a one-off payment keeps your Fitbit Air buzzing for good. No subscription, no ads.</string>
+    <string name="license_desc_trial_price">Everything is free while the trial runs. After that, a one-off payment of %1$s keeps your Fitbit Air buzzing for good. No subscription, no ads.</string>
+    <string name="license_desc_expired">Calls, notifications and Test buzz have stopped buzzing your Fitbit Air. Your rules and settings are kept. Unlock once to start buzzes again.</string>
+    <string name="license_desc_unlocked">Thanks for buying Air Alerts. It\'s unlocked for good, with nothing more to pay.</string>
+    <string name="license_btn_buy">Unlock</string>
+    <string name="license_btn_buy_price">Unlock for %1$s</string>
+    <string name="onboarding_trial_title">Free trial</string>
+    <plurals name="onboarding_trial_desc">
+        <item quantity="one">Everything works free for %1$d day. After that, a one-off payment through Google Play keeps your Fitbit Air buzzing. No subscription, no ads.</item>
+        <item quantity="other">Everything works free for %1$d days. After that, a one-off payment through Google Play keeps your Fitbit Air buzzing. No subscription, no ads.</item>
+    </plurals>
 </resources>

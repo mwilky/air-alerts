@@ -18,7 +18,7 @@
 
 Your Fitbit Air keeps buzzing while a call rings and buzzes once for each notification, with rules for which callers, contacts and apps buzz and which stay quiet.
 
-It is free, with no ads, no accounts and no analytics. The app has no internet permission at all, so nothing leaves your phone except Bluetooth messages to your Fitbit Air.
+Everything is free for 30 days, then a one-off purchase unlocks it for good. There are no ads, no subscription, no accounts and no analytics. The app has no internet permission at all, so nothing leaves your phone except Bluetooth messages to your Fitbit Air.
 
 [B]Unofficial:[/B] Air Alerts isn't made by, or affiliated with, Google or Fitbit, and a Fitbit Air or Google Health update could stop it working. Version 0.9.0 is a beta.
 
@@ -119,7 +119,8 @@ A buzz usually lands two to seven seconds after the notification. Now and then o
 
 [LIST]
 [*][B]Google Play Store:[/B] [URL='https://play.google.com/store/apps/details?id=com.mwilky.airalerts']Download on Google Play[/URL]
-[I](Free. No ads, no purchases, no subscriptions.)[/I]
+[I](Free for 30 days, then a one-off purchase unlocks it for good. No ads, no subscription.)[/I]
+[*][B]Free trial:[/B] everything works free for 30 days, counted from the first time you open the app. After that, every buzz stops (calls, notifications and Test buzz) until you unlock. Your rules, conditions and settings are kept while it's locked, and buzzes start again as soon as you unlock.
 [*][B]Source Code / Self-Build:[/B] The project is fully open source under the GPL-3.0 licence. You are welcome to compile the APK yourself using standard Gradle commands.
 [/LIST]
 

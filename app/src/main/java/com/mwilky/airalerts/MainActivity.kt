@@ -34,7 +34,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        val store = (application as AirAlertsApp).store
+        val app = application as AirAlertsApp
+        val store = app.store
+        // Starts the trial clock on first open and connects to Google Play for the unlock.
+        app.licensing
         setContent {
             AirAlertsTheme {
                 val onboarded by store.onboarded.collectAsStateWithLifecycle(initialValue = null)
@@ -48,6 +51,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Picks up a purchase made, restored or refunded while the app was away.
+        (application as AirAlertsApp).licensing.refreshPurchases()
     }
 }
 

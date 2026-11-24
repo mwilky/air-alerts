@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -55,6 +56,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.spring
 import com.mwilky.airalerts.band.BuzzRun
+import com.mwilky.airalerts.Licensing
 import com.mwilky.airalerts.band.BuzzStep
 import com.mwilky.airalerts.band.StepState
 import kotlinx.coroutines.delay
@@ -66,6 +68,7 @@ enum class OnboardingStep {
     WELCOME,
     BAND,
     PERMISSIONS,
+    TRIAL,
     TEST
 }
 
@@ -95,6 +98,10 @@ internal fun stepStyle(step: OnboardingStep): StepStyle {
             MaterialShapes.Clover8Leaf, Icons.Rounded.VerifiedUser,
             c.primaryContainer, c.onPrimaryContainer, c.primary, c.onPrimary
         )
+        OnboardingStep.TRIAL -> StepStyle(
+            MaterialShapes.Gem, Icons.Rounded.WorkspacePremium,
+            c.secondaryContainer, c.onSecondaryContainer, c.secondary, c.onSecondary
+        )
         OnboardingStep.TEST -> StepStyle(
             MaterialShapes.Sunny, Icons.Rounded.NotificationsActive,
             c.tertiaryContainer, c.onTertiaryContainer, c.tertiary, c.onTertiary
@@ -104,7 +111,8 @@ internal fun stepStyle(step: OnboardingStep): StepStyle {
 
 /**
  * First run: what the app does, then the Fitbit Air checks (Nearby devices, Bluetooth, paired),
- * then notification access and optional Contacts, then a test buzz. Finishing turns buzzes on.
+ * then notification access and optional Contacts, then the free trial, then a test buzz.
+ * Finishing turns buzzes on.
  */
 @Composable
 fun OnboardingScreen(onComplete: () -> Unit, viewModel: HomeViewModel = viewModel()) {
@@ -149,8 +157,10 @@ fun OnboardingScreen(onComplete: () -> Unit, viewModel: HomeViewModel = viewMode
 
     val isNextEnabled = when (currentStep) {
         OnboardingStep.WELCOME -> true
-        OnboardingStep.BAND -> environment.canBuzz
+        // Setup can go on without a Fitbit Air; nothing buzzes until Home's problem cards are fixed.
+        OnboardingStep.BAND -> true
         OnboardingStep.PERMISSIONS -> environment.notificationAccess
+        OnboardingStep.TRIAL -> true
         OnboardingStep.TEST -> true
     }
 
@@ -183,6 +193,9 @@ fun OnboardingScreen(onComplete: () -> Unit, viewModel: HomeViewModel = viewMode
                 onAllowNotificationAccess = { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) },
                 onAllowContacts = { contactsLauncher.launch(Manifest.permission.READ_CONTACTS) }
             )
+            OnboardingStep.TRIAL -> state.licence?.let { licence ->
+                TrialStepContent(status = licence, onBuy = { activity?.let(viewModel::buy) })
+            }
             OnboardingStep.TEST -> TestStepContent(
                 busy = state.busy,
                 ready = environment.canBuzz,
@@ -521,6 +534,9 @@ private fun BandStepContent(
                 environment.bandPaired -> OkCard(R.string.band_title, R.string.paired_status, R.string.paired_desc)
                 else -> Problem(R.string.not_paired_title, R.string.not_paired_status, R.string.not_paired_desc, Icons.Rounded.Watch, R.string.not_paired_btn, Icons.AutoMirrored.Rounded.Launch, onOpenGoogleHealth)
             }
+        },
+        {
+            if (!environment.canBuzz) EmptyRuleHint(stringResource(R.string.onboarding_band_skip_hint), Icons.Rounded.Info)
         }
     )
 }
@@ -696,6 +712,15 @@ private fun TestSuccess() {
     }
 }
 
+@Composable
+private fun TrialStepContent(status: Licensing.Status, onBuy: () -> Unit) {
+    StepColumn(
+        stringResource(R.string.onboarding_trial_title),
+        { StepBody(pluralStringResource(R.plurals.onboarding_trial_desc, Licensing.TRIAL_DAYS, Licensing.TRIAL_DAYS)) },
+        { LicenseCard(status = status, onBuy = onBuy) }
+    )
+}
+
 /** A check that's already fine. */
 @Composable
 private fun OkCard(title: Int, status: Int, desc: Int) {
@@ -790,7 +815,15 @@ fun OnboardingStep3Preview() {
     }
 }
 
-@Preview(name = "Step 4 - Try a buzz", showBackground = true, widthDp = 390, heightDp = 844)
+@Preview(name = "Step 4 - Free trial", showBackground = true, widthDp = 390, heightDp = 844)
+@Composable
+fun OnboardingTrialPreview() {
+    OnboardingStepPreview(OnboardingStep.TRIAL) {
+        TrialStepContent(Licensing.Status(purchased = false, trialStartMillis = 0, now = 0, priceText = "£2.99"), onBuy = {})
+    }
+}
+
+@Preview(name = "Step 5 - Try a buzz", showBackground = true, widthDp = 390, heightDp = 844)
 @Composable
 fun OnboardingStep4Preview() {
     OnboardingStepPreview(OnboardingStep.TEST) {
@@ -798,7 +831,7 @@ fun OnboardingStep4Preview() {
     }
 }
 
-@Preview(name = "Step 4 - Buzzed", showBackground = true, widthDp = 390, heightDp = 844)
+@Preview(name = "Step 5 - Buzzed", showBackground = true, widthDp = 390, heightDp = 844)
 @Composable
 fun OnboardingStep4SuccessPreview() {
     OnboardingStepPreview(OnboardingStep.TEST) {

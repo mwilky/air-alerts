@@ -10,7 +10,8 @@ import kotlinx.coroutines.launch
 /**
  * Buzzes the band for each alert, one buzz at a time. Alerts that arrive while a buzz is under way
  * share the next one, so a burst of messages costs two buzzes, not one each. A ringing call keeps
- * buzzing until it stops ringing; alerts that arrive meanwhile share one buzz after it.
+ * buzzing until it stops ringing; alerts that arrive meanwhile share one buzz after it. Once the
+ * free trial is over and the app isn't unlocked, nothing buzzes.
  */
 class AlertBuzzer(scope: CoroutineScope, private val band: AirBand, private val store: AlertStore) {
     /** [ringing], for an incoming call, stays true while it rings. */
@@ -28,6 +29,7 @@ class AlertBuzzer(scope: CoroutineScope, private val band: AirBand, private val 
             while (true) {
                 val batch = mutableListOf(requests.receive())
                 while (true) batch += requests.tryReceive().getOrNull() ?: break
+                if (!Licensing.entitled(store)) continue
                 val startedAt = System.currentTimeMillis()
                 val result = band.buzz(repeatWhile = batch.firstNotNullOfOrNull { it.ringing })
                 band.lastRun.value?.let { store.setLastRun(it) }

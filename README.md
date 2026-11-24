@@ -2,7 +2,7 @@
 
 Call and notification buzzes for the Google Fitbit Air.
 
-Your Fitbit Air keeps buzzing while a call rings and buzzes once for each notification, with rules for which callers, contacts and apps buzz and which stay quiet. It is free, with no ads, no accounts and no analytics. The app has no internet permission at all, so nothing leaves your phone except Bluetooth messages to your Fitbit Air.
+Your Fitbit Air keeps buzzing while a call rings and buzzes once for each notification, with rules for which callers, contacts and apps buzz and which stay quiet. Everything is free for 30 days, then a one-off purchase unlocks it for good. There are no ads, no subscription, no accounts and no analytics. The app has no internet permission at all, so nothing leaves your phone except Bluetooth messages to your Fitbit Air.
 
 Air Alerts is unofficial. It isn't made by, or affiliated with, Google or Fitbit, and a Fitbit Air or Google Health update could stop it working. Version 0.9.0 is a beta.
 
@@ -77,7 +77,7 @@ Air Alerts is unofficial. It isn't made by, or affiliated with, Google or Fitbit
 | Notification access | See calls and notifications as they arrive, and know when a call stops ringing |
 | Contacts (optional) | Tell starred favourites and saved contacts from unknown numbers. Only names are looked up, on the phone |
 
-There is no internet permission, so the app can't send anything anywhere; the only thing that leaves the phone is Bluetooth messages to your Fitbit Air. No phone-state or call-log permission is used: calls are recognised from the calling app's own notification. Notification content isn't stored. Only the app's name and the time are kept for the Buzzes list, and the sender or caller's name is compared with your rules on the phone. Settings, rules, the last 30 buzzes, the steps of the last buzz and the last battery reading are stored on the phone only, and uninstalling removes them all. See [PRIVACY_POLICY.md](PRIVACY_POLICY.md) for the full policy.
+There is no internet permission, so the app can't send anything anywhere; the only thing that leaves the phone is Bluetooth messages to your Fitbit Air. No phone-state or call-log permission is used: calls are recognised from the calling app's own notification. Notification content isn't stored. Only the app's name and the time are kept for the Buzzes list, and the sender or caller's name is compared with your rules on the phone. Settings, rules, the last 30 buzzes, the steps of the last buzz, the last battery reading, the date the free trial started and whether the app is unlocked are stored on the phone only, and uninstalling removes them all. See [PRIVACY_POLICY.md](PRIVACY_POLICY.md) for the full policy.
 
 ## How it works
 
@@ -109,7 +109,7 @@ Anything that touches the band needs a physical Android phone and a Fitbit Air.
 
 ## Pricing
 
-Air Alerts is free on [Google Play](https://play.google.com/store/apps/details?id=com.mwilky.airalerts), with no ads and no purchases.
+Air Alerts is on [Google Play](https://play.google.com/store/apps/details?id=com.mwilky.airalerts). Everything works free for 30 days, counted from the first time you open the app. After that, every buzz stops (calls, notifications and Test buzz) until a one-off purchase through Google Play unlocks it for good. There is no subscription and there are no ads. Your rules, conditions and settings are kept while it's locked, and buzzes start again as soon as you unlock.
 
 ## Credits
 

@@ -11,4 +11,5 @@ class AirAlertsApp : Application() {
     val store by lazy { AlertStore(this) }
     val band by lazy { AirBand.get(this) }
     val buzzer by lazy { AlertBuzzer(scope, band, store) }
+    val licensing by lazy { Licensing(this, store) }
 }
