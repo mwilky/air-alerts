@@ -1,10 +1,18 @@
-I wanted my Fitbit Air to buzz when my phone rings, so I've written an app for it, and it's now on Google Play as a beta. Air Alerts makes your Fitbit Air buzz for phone calls and notifications.
+I wanted my Fitbit Air to buzz when my phone rings, so I've written an app for it, and it's now in a closed beta on Google Play that anyone can join. Air Alerts makes your Fitbit Air buzz for phone calls and notifications.
 
 The short version: it keeps buzzing while a call rings, buzzes once for each notification, and has rules for which callers, contacts and apps buzz and which stay quiet.
 
 It's unofficial. I'm not affiliated with Google or Fitbit, and a Fitbit Air or Google Health update could stop it working until I catch up.
 
-[Google Play](https://play.google.com/store/apps/details?id=com.mwilky.airalerts) · [Source on GitHub](https://github.com/mwilky/air-alerts) · [Screenshots](https://github.com/mwilky/air-alerts#readme)
+[Join the testers group first](https://groups.google.com/g/air-alerts-testers) · [Source on GitHub](https://github.com/mwilky/air-alerts) · [Screenshots](https://github.com/mwilky/air-alerts#readme)
+
+**How to join the beta**
+
+1. Join the [Air Alerts testers group](https://groups.google.com/g/air-alerts-testers) with the Google account you use for the Play Store. Anyone can join. It's only there to give test access, and you won't get emails from other members.
+2. [Opt in to the test](https://play.google.com/apps/testing/com.mwilky.airalerts), on the web or on your phone. It can take a few minutes after joining the group before that page works.
+3. Install it from [Google Play](https://play.google.com/store/apps/details?id=com.mwilky.airalerts).
+
+If you can, please stay opted in for at least 14 days. Google needs a group of testers for 14 days before I can make the app public, so that's the biggest help. Bugs and feedback are welcome on [GitHub issues](https://github.com/mwilky/air-alerts/issues).
 
 Everything is free for 30 days. After that the buzzes stop until you unlock it with a one-off purchase on Google Play, and that's it for good: no subscription, no ads, no accounts, no analytics. Your rules and settings are kept while it's locked. The app doesn't even have the internet permission, so nothing leaves your phone except Bluetooth messages to your Fitbit Air.
 

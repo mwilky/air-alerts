@@ -107,9 +107,19 @@ Standard Android Gradle project with a single `:app` module. Open in Android Stu
 
 Anything that touches the band needs a physical Android phone and a Fitbit Air.
 
+## Join the beta
+
+Air Alerts is in a closed beta on Google Play, so you need to join the test before you can install it.
+
+1. Join the [Air Alerts testers group](https://groups.google.com/g/air-alerts-testers) with the Google account you use for the Play Store. Anyone can join. The group is only there to give test access, and you won't get emails from other members.
+2. [Opt in to the test](https://play.google.com/apps/testing/com.mwilky.airalerts), on the web or on your phone. It can take a few minutes after joining the group before this page works.
+3. Install Air Alerts from [Google Play](https://play.google.com/store/apps/details?id=com.mwilky.airalerts).
+
+Please stay opted in for at least 14 days if you can. Google needs a group of testers for 14 days before the app can go public. Feedback and bugs are welcome on [GitHub issues](https://github.com/mwilky/air-alerts/issues).
+
 ## Pricing
 
-Air Alerts is on [Google Play](https://play.google.com/store/apps/details?id=com.mwilky.airalerts). Everything works free for 30 days, counted from the first time you open the app. After that, every buzz stops (calls, notifications and Test buzz) until a one-off purchase through Google Play unlocks it for good. There is no subscription and there are no ads. Your rules, conditions and settings are kept while it's locked, and buzzes start again as soon as you unlock.
+Air Alerts is in a closed beta on [Google Play](https://play.google.com/store/apps/details?id=com.mwilky.airalerts) (see Join the beta). Everything works free for 30 days, counted from the first time you open the app. After that, every buzz stops (calls, notifications and Test buzz) until a one-off purchase through Google Play unlocks it for good. There is no subscription and there are no ads. Your rules, conditions and settings are kept while it's locked, and buzzes start again as soon as you unlock.
 
 ## Credits
 

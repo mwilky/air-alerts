@@ -117,9 +117,19 @@ A buzz usually lands two to seven seconds after the notification. Now and then o
 
 [SIZE=5][B]Downloads, Support & Pricing[/B][/SIZE]
 
-[LIST]
-[*][B]Google Play Store:[/B] [URL='https://play.google.com/store/apps/details?id=com.mwilky.airalerts']Download on Google Play[/URL]
+Air Alerts is in a closed beta on Google Play, so you need to join the test before you can install it:
+
+[LIST=1]
+[*][B]Join the testers group:[/B] [URL='https://groups.google.com/g/air-alerts-testers']Air Alerts testers on Google Groups[/URL], with the Google account you use for the Play Store. Anyone can join. The group is only there to give test access, and you won't get emails from other members.
+[*][B]Opt in to the test:[/B] [URL='https://play.google.com/apps/testing/com.mwilky.airalerts']Become a tester[/URL], on the web or on your phone. It can take a few minutes after joining the group before this page works.
+[*][B]Install:[/B] [URL='https://play.google.com/store/apps/details?id=com.mwilky.airalerts']Download on Google Play[/URL]
 [I](Free for 30 days, then a one-off purchase unlocks it for good. No ads, no subscription.)[/I]
+[/LIST]
+
+Please stay opted in for at least 14 days if you can. Google needs a group of testers for 14 days before the app can go public.
+
+[LIST]
+[*][B]Feedback and bugs:[/B] [URL='https://github.com/mwilky/air-alerts/issues']GitHub issues[/URL], or reply in this thread.
 [*][B]Free trial:[/B] everything works free for 30 days, counted from the first time you open the app. After that, every buzz stops (calls, notifications and Test buzz) until you unlock. Your rules, conditions and settings are kept while it's locked, and buzzes start again as soon as you unlock.
 [*][B]Source Code / Self-Build:[/B] The project is fully open source under the GPL-3.0 licence. You are welcome to compile the APK yourself using standard Gradle commands.
 [/LIST]
