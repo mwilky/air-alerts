@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -204,24 +205,28 @@ private fun MainNavigationBar(selectedTab: NavTab, onSelect: (NavTab) -> Unit) {
                 )
             }
     ) {
-        ShortNavigationBar(containerColor = Color.Transparent) {
-            NavTab.entries.forEach { tab ->
-                val tabTitle = stringResource(tab.titleRes)
-                ShortNavigationBarItem(
-                    selected = selectedTab == tab,
-                    onClick = { onSelect(tab) },
-                    icon = {
-                        Icon(
-                            tab.icon,
-                            contentDescription = tabTitle,
-                            modifier = Modifier.onPlaced {
-                                iconCentres[tab] = it.positionInRoot() + Offset(it.size.width / 2f, it.size.height / 2f)
-                            }
-                        )
-                    },
-                    label = { Text(tabTitle) },
-                    colors = itemColors
-                )
+        // The stock press ripple fills the item's own hidden pill, which flashes on the tapped tab
+        // before ours arrives, so ours is the only feedback.
+        CompositionLocalProvider(LocalRippleConfiguration provides null) {
+            ShortNavigationBar(containerColor = Color.Transparent) {
+                NavTab.entries.forEach { tab ->
+                    val tabTitle = stringResource(tab.titleRes)
+                    ShortNavigationBarItem(
+                        selected = selectedTab == tab,
+                        onClick = { onSelect(tab) },
+                        icon = {
+                            Icon(
+                                tab.icon,
+                                contentDescription = tabTitle,
+                                modifier = Modifier.onPlaced {
+                                    iconCentres[tab] = it.positionInRoot() + Offset(it.size.width / 2f, it.size.height / 2f)
+                                }
+                            )
+                        },
+                        label = { Text(tabTitle) },
+                        colors = itemColors
+                    )
+                }
             }
         }
     }
