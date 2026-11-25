@@ -3,52 +3,55 @@ Feel your phone ring on your wrist.
 Air Alerts makes your Google Fitbit Air buzz for phone calls and notifications. You choose which callers, contacts and apps buzz and which stay quiet.
 
 UNOFFICIAL APP
-Air Alerts is an independent app. It isn't made by, endorsed by or affiliated with Google or Fitbit, and a Fitbit Air or Google Health update could stop it working. This is a beta.
+Air Alerts is an independent beta app, not made by, endorsed by or affiliated with Google or Fitbit. A Fitbit Air or Google Health update could stop it working.
 
 CALLS
-• Keeps buzzing, about once a second, while a call rings
-• Stops as soon as the call is answered, declined or missed, and after a minute at most
-• Works for phone calls and for calls in apps such as WhatsApp
+• Keeps buzzing while a call rings, every 1, 1.5 or 2 seconds as you choose
+• Stops when the call is answered, declined or missed, or after a minute at most
+• Works for phone calls and app calls such as WhatsApp
 • Favourite contacts always buzz
-• Separate switches for all other contacts and for unknown numbers
-• Caller rules: pick a contact and set their calls to buzz or stay quiet
+• Separate switches for all other contacts and unknown numbers
+• Caller rules: set a contact's calls to buzz or stay quiet
 
 NOTIFICATIONS
-• One buzz for each notification that makes a sound or vibrates your phone
+• One buzz per notification that makes a sound or vibrates your phone
 • Silent notifications and ongoing ones such as music and downloads don't buzz
-• A burst of messages shares a buzz, so your wrist isn't buzzing over and over
+• A burst of messages shares a buzz, using the longest pattern among them, or the ringing call's
 • Favourite contacts always buzz, whatever the app
 • Contact rules, matched by the sender's name in any app
 • App rules: set any app to buzz or stay quiet
 • One switch for everything your rules don't cover
 
-CONDITIONS
-• Do Not Disturb: anything it silences on your phone doesn't buzz your Fitbit Air. People and apps it lets through still buzz
-• Quiet hours: nothing buzzes between the times you set, overnight if you like
-• Quiet hours can be the same every day, differ at weekends or be set for each day
-• Tap any rule to give it its own conditions: always buzz, stay quiet whenever Do Not Disturb is on, or stay quiet during its own hours
+SETTINGS
+The Settings tab sets defaults for every rule.
+• Buzz pattern: Quick (two short taps close together), Repeat (Quick twice with a short pause) or Long (one long pulse then a short one)
+• Try this buzz sends the pattern you've picked. Test buzz uses it too
+• Ringing calls: a buzz every 1, 1.5 or 2 seconds
+• Do Not Disturb: what it silences on your phone doesn't buzz your Fitbit Air. People and apps it lets through still buzz
+• Quiet hours: nothing buzzes between the times you set, overnight if you like. Set them the same every day, different at weekends or day by day
+• Tap any rule for its own buzz pattern and conditions: always buzz, stay quiet whenever Do Not Disturb is on, or stay quiet during its own hours
 
 AT A GLANCE
 • A chip on Home shows your Fitbit Air's state and battery level. Tap it for when it last buzzed and a Test buzz button
-• Calls and Notifications each have their own on/off switch
-• The Buzzes tab has a Test buzz button, each step of the last buzz with how long it took, and a list of recent buzzes and misses with the reason for a miss
+• Calls and Notifications each have an on/off switch
+• The Buzzes tab has a Test buzz button, each step of the last buzz with how long it took, and recent buzzes, and misses with the reason
 
 HOW IT WORKS
-The Fitbit Air has no buzz command for other apps, and it has one secure Bluetooth connection, which Google Health uses. For each buzz, Air Alerts borrows that connection for a few seconds, changes the band's buzz-strength setting and changes it back, then hands the connection back to Google Health, which keeps syncing as normal. The band buzzes when that setting changes, so you feel a quick double pulse at your usual strength. Nothing is changed permanently.
+The Fitbit Air has no buzz command for other apps, and Google Health uses its one secure Bluetooth connection. For each buzz, Air Alerts borrows it for a few seconds, changes the band's buzz-strength setting and changes it back, then hands it back to Google Health, which keeps syncing as normal. The band buzzes when that setting changes, so each pattern is made from those changes, at the strength set in Google Health. Nothing is changed permanently.
 
 GOOD TO KNOW
 • A buzz usually lands two to seven seconds after the notification
-• Now and then a buzz is missed when Google Health is using the connection at the same moment. The Buzzes tab tells you when and why
-• Air Alerts never scans for devices. It only connects to the Fitbit Air that's already paired with your phone
+• A buzz is sometimes missed when Google Health is using the connection. The Buzzes tab says when and why
+• Air Alerts never scans, and only connects to the Fitbit Air paired with your phone
 
 SETUP
-Setup walks you through Nearby devices, Bluetooth, pairing, notification access and the optional Contacts permission, then finishes with a test buzz. Your Fitbit Air must already be paired with your phone through Google Health. Google Health stays installed and keeps its pairing.
+Setup covers Nearby devices, Bluetooth, pairing, notification access and the optional Contacts permission, then ends with a test buzz. Google Health stays installed and keeps its pairing.
 
 PRIVACY
-No ads, no accounts, no analytics. Air Alerts has no internet permission, so nothing leaves your phone except Bluetooth messages to your Fitbit Air. Notification content isn't stored, and contact names are only compared with your rules on the phone.
+No ads, accounts or analytics. Air Alerts has no internet permission, so nothing leaves your phone except Bluetooth messages to your Fitbit Air. Notification content isn't stored, and contact names are only compared with your rules on the phone.
 
 PERMISSIONS
-• Nearby devices: to reach your paired Fitbit Air over Bluetooth. No scanning and no location
+• Nearby devices: to reach your paired Fitbit Air over Bluetooth. No scanning or location
 • Notification access: to see calls and notifications as they arrive
 • Contacts (optional): to tell starred favourites and saved contacts from unknown numbers
 
@@ -56,6 +59,6 @@ PRICE
 Free for 30 days, then a one-off purchase unlocks it for good. No subscription.
 
 OPEN SOURCE
-The source is on GitHub under the GPL-3.0 licence: https://github.com/mwilky/air-alerts
+GPL-3.0, source on GitHub: https://github.com/mwilky/air-alerts
 
-Requires a phone running Android 12 or later with Bluetooth Low Energy, and a Google Fitbit Air paired through Google Health.
+Requires Android 12 or later with Bluetooth Low Energy, and a Google Fitbit Air already paired through Google Health.
