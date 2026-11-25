@@ -298,7 +298,7 @@ internal fun HomePageToggle(
                     // Surface tones rather than primary: the selected tab is a step darker than the
                     // unselected ones instead of a colour change.
                     colors = ToggleButtonDefaults.colors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        containerColor = MaterialTheme.colorScheme.surface,
                         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         checkedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                         checkedContentColor = MaterialTheme.colorScheme.onSurface

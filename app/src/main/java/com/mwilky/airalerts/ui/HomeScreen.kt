@@ -142,14 +142,18 @@ internal fun PageScaffold(title: String, content: @Composable ColumnScope.() -> 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
+        containerColor = pageHeaderColor(),
         topBar = {
             TopAppBar(
                 title = { Text(title) },
+                colors = pageHeaderBarColors(),
                 scrollBehavior = scrollBehavior
             )
         }
     ) { padding ->
-        ScrollingPage(modifier = Modifier.padding(padding), content = content)
+        PageSheet(Modifier.padding(padding)) {
+            ScrollingPage(topPadding = 16.dp, content = content)
+        }
     }
 }
 
@@ -374,9 +378,11 @@ fun HomeContent(
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
+        containerColor = pageHeaderColor(),
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
+                colors = pageHeaderBarColors(),
                 scrollBehavior = scrollBehavior
             )
         }
@@ -387,44 +393,50 @@ fun HomeContent(
                 .padding(padding),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // A problem stopping buzzes covers both pages, so it sits above the toggle.
-            Column(
-                modifier = Modifier
-                    .widthIn(max = 640.dp)
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .padding(top = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                ProblemCard(environment, state.settings, problems)
-                state.licence?.takeIf { !it.purchased }?.let { LicenseCard(it, onBuy) }
-            }
             HomePageToggle(
                 selectedIndex = pagerState.currentPage,
                 onSelect = { page -> scope.launch { pagerState.animateScrollToPage(page) } },
-                // A Bluetooth, Nearby devices or pairing problem above takes the chip's place.
+                // A Bluetooth, Nearby devices or pairing problem below takes the chip's place.
                 trailing = if (environment.canBuzz) {
                     { BandChip(state.activity.firstOrNull(), state.battery, state.checkingBattery, state.busy, onTestBuzz) }
                 } else null
             )
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.fillMaxSize(),
-                verticalAlignment = Alignment.Top
-            ) { page ->
-                ScrollingPage(topPadding = 0.dp) {
-                    when (page) {
-                        0 -> {
-                            if (state.settings.calls && state.settings.callFavourites && !environment.contactsAccess) {
-                                ContactsCard(problems.onAllowContacts)
+            // The cards and pages sit on a sheet below the header with the tabs strip.
+            PageSheet {
+                Spacer(Modifier.height(16.dp))
+                // A problem stopping buzzes covers both pages, so it sits above them.
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .widthIn(max = 640.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    ProblemCard(environment, state.settings, problems)
+                    state.licence?.takeIf { !it.purchased }?.let { LicenseCard(it, onBuy) }
+                    // Empty, so the gap above the pages only appears under a card.
+                    Spacer(Modifier)
+                }
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize(),
+                    verticalAlignment = Alignment.Top
+                ) { page ->
+                    ScrollingPage(topPadding = 0.dp) {
+                        when (page) {
+                            0 -> {
+                                if (state.settings.calls && state.settings.callFavourites && !environment.contactsAccess) {
+                                    ContactsCard(problems.onAllowContacts)
+                                }
+                                HomeCallsPage(state.settings, actions)
                             }
-                            HomeCallsPage(state.settings, actions)
-                        }
-                        else -> {
-                            if (state.settings.notifications && state.settings.notifFavourites && !environment.contactsAccess) {
-                                ContactsCard(problems.onAllowContacts)
+                            else -> {
+                                if (state.settings.notifications && state.settings.notifFavourites && !environment.contactsAccess) {
+                                    ContactsCard(problems.onAllowContacts)
+                                }
+                                HomeNotifsPage(state.settings, actions)
                             }
-                            HomeNotifsPage(state.settings, actions)
                         }
                     }
                 }
@@ -596,7 +608,7 @@ private fun BandChipPill(accent: Color, battery: BandBattery?, checkingBattery: 
     Surface(
         onClick = onClick,
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier
             .height(40.dp)
