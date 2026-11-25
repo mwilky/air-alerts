@@ -3,6 +3,7 @@ package com.mwilky.airalerts
 import android.app.Activity
 import android.app.Application
 import android.util.Log
+import android.widget.Toast
 import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
@@ -34,7 +35,7 @@ import kotlinx.coroutines.launch
  * Buzzes check [entitled] straight from the store, so a notification arriving in the background
  * never has to start a Play Billing connection.
  */
-class Licensing(app: Application, private val store: AlertStore) {
+class Licensing(private val app: Application, private val store: AlertStore) {
 
     data class Status(
         val purchased: Boolean,
@@ -99,9 +100,13 @@ class Licensing(app: Application, private val store: AlertStore) {
         })
     }
 
-    /** Re-reads Play's purchase cache. Cheap; called on resume so refunds and restores land. */
+    /**
+     * Re-reads Play's purchase cache. Cheap; called on resume so refunds and restores land. Also
+     * fetches the product again if it hadn't arrived, so the price shows without a restart.
+     */
     fun refreshPurchases() {
         if (!billing.isReady) return
+        if (productDetails == null) queryProductDetails(onReady = null)
         val params = QueryPurchasesParams.newBuilder()
             .setProductType(BillingClient.ProductType.INAPP)
             .build()
@@ -110,14 +115,33 @@ class Licensing(app: Application, private val store: AlertStore) {
         }
     }
 
-    /** Opens Play's purchase sheet, fetching the product first if it hasn't loaded yet. */
+    /**
+     * Opens Play's purchase sheet, fetching the product first if it hasn't loaded yet. Says so if
+     * Play can't be reached or hasn't sent the product, rather than doing nothing.
+     */
     fun purchase(activity: Activity) {
         val details = productDetails
         if (details != null) {
             launchBillingFlow(activity, details)
         } else {
-            queryProductDetails(onReady = { launchBillingFlow(activity, it) })
+            // Play doesn't always answer when it can't reconnect, so give up after a few seconds.
+            var answered = false
+            val timeout = scope.launch {
+                delay(PURCHASE_TIMEOUT_MS)
+                if (!answered) {
+                    answered = true
+                    showUnavailable()
+                }
+            }
+            queryProductDetails(
+                onReady = { if (!answered) { answered = true; timeout.cancel(); launchBillingFlow(activity, it) } },
+                onUnavailable = { scope.launch { if (!answered) { answered = true; timeout.cancel(); showUnavailable() } } }
+            )
         }
+    }
+
+    private fun showUnavailable() {
+        scope.launch { Toast.makeText(app, R.string.license_unavailable, Toast.LENGTH_SHORT).show() }
     }
 
     private fun launchBillingFlow(activity: Activity, details: ProductDetails) {
@@ -129,11 +153,15 @@ class Licensing(app: Application, private val store: AlertStore) {
         val result = billing.launchBillingFlow(activity, params)
         if (result.responseCode != BillingClient.BillingResponseCode.OK) {
             Log.w(TAG, "launchBillingFlow failed: ${result.debugMessage}")
+            showUnavailable()
         }
     }
 
-    private fun queryProductDetails(onReady: ((ProductDetails) -> Unit)?) {
-        if (!billing.isReady) return
+    private fun queryProductDetails(onReady: ((ProductDetails) -> Unit)?, onUnavailable: (() -> Unit)? = null) {
+        if (!billing.isReady) {
+            onUnavailable?.invoke()
+            return
+        }
         val params = QueryProductDetailsParams.newBuilder()
             .setProductList(
                 listOf(
@@ -147,12 +175,14 @@ class Licensing(app: Application, private val store: AlertStore) {
         billing.queryProductDetailsAsync(params) { result, queryResult ->
             if (result.responseCode != BillingClient.BillingResponseCode.OK) {
                 Log.w(TAG, "queryProductDetails failed: ${result.debugMessage}")
+                onUnavailable?.invoke()
                 return@queryProductDetailsAsync
             }
             // Missing until the product exists and is active in Play Console.
             val details = queryResult.productDetailsList.firstOrNull { it.productId == PRODUCT_ID }
             if (details == null) {
                 Log.w(TAG, "no $PRODUCT_ID product on Google Play")
+                onUnavailable?.invoke()
                 return@queryProductDetailsAsync
             }
             productDetails = details
@@ -204,6 +234,7 @@ class Licensing(app: Application, private val store: AlertStore) {
         private const val DAY_MS = 24 * 60 * 60 * 1000L
         private const val TRIAL_DURATION_MS = TRIAL_DAYS * DAY_MS
         private const val CLOCK_TICK_MS = 60_000L
+        private const val PURCHASE_TIMEOUT_MS = 5_000L
 
         /** Whether buzzes are allowed now, read from the store without touching Play Billing. */
         suspend fun entitled(store: AlertStore, now: Long = System.currentTimeMillis()): Boolean =

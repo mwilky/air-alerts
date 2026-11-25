@@ -249,6 +249,7 @@
     <string name="license_desc_unlocked">Thanks for buying Air Alerts. It\'s unlocked for good, with nothing more to pay.</string>
     <string name="license_btn_buy">Unlock</string>
     <string name="license_btn_buy_price">Unlock for %1$s</string>
+    <string name="license_unavailable">Google Play couldn\'t be reached. Try again in a moment.</string>
     <string name="onboarding_trial_title">Free trial</string>
     <plurals name="onboarding_trial_desc">
         <item quantity="one">Everything works free for %1$d day. After that, a one-off payment through Google Play keeps your Fitbit Air buzzing. No subscription, no ads.</item>
