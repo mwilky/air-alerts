@@ -82,7 +82,7 @@ class AlertListener : NotificationListenerService() {
             }
             val wanted = match != null && match.buzz &&
                 !conditionsBlock(match.conditions, settings, dndHidden, dndOn, currentMinutesOfWeek(), localeWeekendDays())
-            if (wanted) app.buzzer.request(AlertBuzzer.Trigger(kind, appName, sbn.postTime, ringing))
+            if (wanted) app.buzzer.request(AlertBuzzer.Trigger(kind, match.pattern(settings), appName, sbn.postTime, ringing))
         }
     }
 

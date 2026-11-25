@@ -90,8 +90,24 @@
     <string name="notifs_no_app_rules">No app rules yet. Add one to make an app always buzz or always stay quiet.</string>
     <string name="notifs_add_app_btn">Add app</string>
 
-    <!-- Conditions -->
-    <string name="nav_conditions">Conditions</string>
+    <!-- Settings -->
+    <string name="nav_settings">Settings</string>
+    <string name="settings_buzz_header">Buzz</string>
+    <string name="settings_conditions_header">Conditions</string>
+    <string name="pattern_single">Quick</string>
+    <string name="pattern_double">Repeat</string>
+    <string name="pattern_long">Long</string>
+    <string name="pattern_desc_single">One quick buzz: two short taps close together.</string>
+    <string name="pattern_desc_double">The quick buzz twice, with a short pause between.</string>
+    <string name="pattern_desc_long">A longer buzz: one long pulse, then a short one.</string>
+    <string name="settings_pattern_try">Try this buzz</string>
+    <string name="settings_ring_title">While a call rings</string>
+    <string name="ring_gap_fast">1 s</string>
+    <string name="ring_gap_medium">1.5 s</string>
+    <string name="ring_gap_slow">2 s</string>
+    <string name="ring_gap_desc_fast">Buzzes every second until the call is answered or stops ringing.</string>
+    <string name="ring_gap_desc_medium">Buzzes every 1.5 seconds until the call is answered or stops ringing.</string>
+    <string name="ring_gap_desc_slow">Buzzes every 2 seconds until the call is answered or stops ringing.</string>
     <string name="conditions_defaults_desc">These apply to every rule. Each rule can override them in its own settings.</string>
     <string name="conditions_dnd_title">Do Not Disturb</string>
     <string name="conditions_dnd_desc">Anything Do Not Disturb silences on your phone doesn\'t buzz your Fitbit Air.</string>
@@ -116,12 +132,17 @@
     <string name="editor_mode_default">Default</string>
     <string name="editor_mode_always">Always buzz</string>
     <string name="editor_mode_skip">Stay quiet</string>
-    <string name="editor_dnd_desc_default">Follows the Do Not Disturb setting on the Conditions tab.</string>
+    <string name="editor_dnd_desc_default">Follows the Do Not Disturb setting on the Settings tab.</string>
     <string name="editor_dnd_desc_always">Buzzes even while Do Not Disturb is on.</string>
-    <string name="editor_dnd_desc_skip">Stays quiet whenever Do Not Disturb is on, even if the Conditions tab allows it.</string>
-    <string name="editor_quiet_desc_default">Follows quiet hours on the Conditions tab.</string>
+    <string name="editor_dnd_desc_skip">Stays quiet whenever Do Not Disturb is on, even if the Settings tab allows it.</string>
+    <string name="editor_quiet_desc_default">Follows quiet hours on the Settings tab.</string>
     <string name="editor_quiet_desc_always">Buzzes even during quiet hours.</string>
-    <string name="editor_quiet_desc_skip">Stays quiet between the times below, even if quiet hours are off on the Conditions tab.</string>
+    <string name="editor_quiet_desc_skip">Stays quiet between the times below, even if quiet hours are off on the Settings tab.</string>
+    <string name="editor_pattern_title">Buzz pattern</string>
+    <string name="editor_pattern_desc_default">Follows the buzz pattern on the Settings tab.</string>
+    <string name="chip_pattern_single">Quick buzz</string>
+    <string name="chip_pattern_double">Repeat buzz</string>
+    <string name="chip_pattern_long">Long buzz</string>
     <string name="chip_dnd_always">Buzzes in DND</string>
     <string name="chip_dnd_skip">Quiet in DND</string>
     <string name="chip_quiet_always">Buzzes in quiet hours</string>

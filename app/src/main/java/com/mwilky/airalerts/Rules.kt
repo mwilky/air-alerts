@@ -5,7 +5,7 @@ import org.json.JSONObject
 
 /**
  * A caller, or a message sender, matched by the name the notification shows. [buzz] false keeps it
- * quiet; [conditions] are its own Do Not Disturb and quiet hours settings.
+ * quiet; [conditions] are its own Do Not Disturb, quiet hours and buzz pattern settings.
  */
 data class ContactRule(
     val id: String,
@@ -23,7 +23,10 @@ data class AppRule(
 )
 
 /** The rule or default row a call or notification fell to: whether it buzzes, and its conditions. */
-data class RuleMatchResult(val buzz: Boolean, val conditions: RuleConditions)
+data class RuleMatchResult(val buzz: Boolean, val conditions: RuleConditions) {
+    /** Its own pattern, else the Settings tab's. */
+    fun pattern(settings: AlertSettings) = conditions.pattern ?: settings.buzzPattern
+}
 
 /**
  * Which calls and notifications buzz. Each page's default rows apply when no custom rule matches,
@@ -131,7 +134,7 @@ internal object RuleJson {
         )
     }
 
-    /** Only a rule that overrides the Conditions tab stores its conditions. */
+    /** Only a rule that overrides the Settings tab stores its conditions. */
     private fun JSONObject.putConditions(conditions: RuleConditions): JSONObject =
         if (conditions == RuleConditions()) this else put("when", conditions.toJson())
 

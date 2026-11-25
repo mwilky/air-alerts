@@ -1,13 +1,14 @@
 package com.mwilky.airalerts
 
+import com.mwilky.airalerts.band.BuzzPattern
 import org.json.JSONObject
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.ZoneId
 import java.util.Locale
 
-// The Conditions tab: Do Not Disturb and quiet hours, which every rule follows unless it says
-// otherwise. All pure Kotlin apart from the locale's weekend, so the JVM tests cover it.
+// The Settings tab's conditions: Do Not Disturb and quiet hours, which every rule follows unless it
+// says otherwise. All pure Kotlin apart from the locale's weekend, so the JVM tests cover it.
 
 private const val DAY_MINUTES = 24 * 60
 private const val WEEK_MINUTES = 7 * DAY_MINUTES
@@ -35,23 +36,25 @@ enum class QuietHoursMode {
 }
 
 /**
- * A rule's or default row's own Do Not Disturb and quiet hours settings. [quietStart] and
- * [quietEnd] (minutes from midnight) are its own quiet window, used only with [quiet] set to SKIP;
- * without one it uses the Conditions tab's times.
+ * A rule's or default row's own Do Not Disturb, quiet hours and buzz pattern settings. [quietStart]
+ * and [quietEnd] (minutes from midnight) are its own quiet window, used only with [quiet] set to
+ * SKIP; without one it uses the Settings tab's times. A null [pattern] follows the Settings tab's.
  */
 data class RuleConditions(
     val dnd: DndMode = DndMode.INHERIT,
     val quiet: QuietHoursMode = QuietHoursMode.INHERIT,
     val quietStart: Int? = null,
-    val quietEnd: Int? = null
+    val quietEnd: Int? = null,
+    val pattern: BuzzPattern? = null
 ) {
-    val isDefault get() = dnd == DndMode.INHERIT && quiet == QuietHoursMode.INHERIT
+    val isDefault get() = dnd == DndMode.INHERIT && quiet == QuietHoursMode.INHERIT && pattern == null
 
     fun toJson(): JSONObject = JSONObject().apply {
         put("dnd", dnd.name)
         put("quiet", quiet.name)
         quietStart?.let { put("quietStart", it) }
         quietEnd?.let { put("quietEnd", it) }
+        pattern?.let { put("pattern", it.name) }
     }
 
     companion object {
@@ -62,7 +65,8 @@ data class RuleConditions(
                 dnd = DndMode.entries.firstOrNull { it.name == json.optString("dnd") } ?: DndMode.INHERIT,
                 quiet = QuietHoursMode.entries.firstOrNull { it.name == json.optString("quiet") } ?: QuietHoursMode.INHERIT,
                 quietStart = if (json.has("quietStart")) json.optInt("quietStart") else null,
-                quietEnd = if (json.has("quietEnd")) json.optInt("quietEnd") else null
+                quietEnd = if (json.has("quietEnd")) json.optInt("quietEnd") else null,
+                pattern = BuzzPattern.entries.firstOrNull { it.name == json.optString("pattern") }
             )
         }
 

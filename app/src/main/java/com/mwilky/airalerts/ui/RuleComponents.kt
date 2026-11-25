@@ -63,6 +63,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.DoNotDisturbOn
+import androidx.compose.material.icons.rounded.Vibration
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.ToggleButtonDefaults
@@ -73,6 +74,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.mwilky.airalerts.DndMode
 import com.mwilky.airalerts.QuietHoursMode
 import com.mwilky.airalerts.RuleConditions
+import com.mwilky.airalerts.band.BuzzPattern
 
 // The shared building blocks, so this app's screens read the same way.
 
@@ -313,7 +315,7 @@ fun RuleListItem(
 }
 
 /**
- * A rule's overridden conditions as small chips; following the Conditions tab shows none. Tertiary
+ * A rule's overridden conditions as small chips; following the Settings tab shows none. Tertiary
  * when the rule buzzes anyway, muted when it stays quiet; the label spells the direction out too,
  * so colour isn't the only cue.
  */
@@ -329,6 +331,12 @@ fun ConditionChips(conditions: RuleConditions, modifier: Modifier = Modifier) {
             QuietHoursMode.INHERIT -> Unit
             QuietHoursMode.ALWAYS -> add(Triple(Icons.Rounded.Bedtime, R.string.chip_quiet_always, true))
             QuietHoursMode.SKIP -> add(Triple(Icons.Rounded.Bedtime, R.string.chip_quiet_skip, false))
+        }
+        when (conditions.pattern) {
+            null -> Unit
+            BuzzPattern.SINGLE -> add(Triple(Icons.Rounded.Vibration, R.string.chip_pattern_single, true))
+            BuzzPattern.DOUBLE -> add(Triple(Icons.Rounded.Vibration, R.string.chip_pattern_double, true))
+            BuzzPattern.LONG -> add(Triple(Icons.Rounded.Vibration, R.string.chip_pattern_long, true))
         }
     }
     if (chips.isEmpty()) return

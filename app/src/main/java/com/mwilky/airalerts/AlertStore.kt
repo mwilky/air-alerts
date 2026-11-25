@@ -11,6 +11,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.mwilky.airalerts.band.BandBattery
 import com.mwilky.airalerts.band.BuzzError
 import com.mwilky.airalerts.band.BuzzFailure
+import com.mwilky.airalerts.band.BuzzPattern
 import com.mwilky.airalerts.band.BuzzRun
 import com.mwilky.airalerts.band.BuzzStep
 import com.mwilky.airalerts.band.StepState
@@ -32,7 +33,10 @@ data class AlertSettings(
     val notifOthers: Boolean = true,
     val senderRules: List<ContactRule> = emptyList(),
     val appRules: List<AppRule> = emptyList(),
-    /** The Conditions tab. Do Not Disturb starts on: what it silences on the phone doesn't buzz. */
+    /** The Settings tab. Every rule buzzes with [buzzPattern] unless it has its own. */
+    val buzzPattern: BuzzPattern = BuzzPattern.SINGLE,
+    val ringSpeed: RingSpeed = RingSpeed.FAST,
+    /** Do Not Disturb starts on: what it silences on the phone doesn't buzz. */
     val dndQuiet: Boolean = true,
     val quietHours: Boolean = false,
     val quietStart: Int = 22 * 60,
@@ -53,6 +57,9 @@ data class AlertSettings(
         DefaultRow.NOTIF_OTHERS -> notifOthersWhen
     }
 }
+
+/** How long a ringing call waits after each buzz before the next. */
+enum class RingSpeed(val gapMillis: Long) { FAST(1_000), MEDIUM(1_500), SLOW(2_000) }
 
 /** The fixed rows on the Calls and Notifications pages, each with its own conditions. */
 enum class DefaultRow(internal val key: String) {
@@ -95,6 +102,8 @@ class AlertStore(private val context: Context) {
             notifOthers = p[NOTIF_OTHERS] ?: true,
             senderRules = RuleJson.decodeContacts(p[SENDER_RULES]),
             appRules = RuleJson.decodeApps(p[APP_RULES]),
+            buzzPattern = BuzzPattern.entries.firstOrNull { it.name == p[BUZZ_PATTERN] } ?: BuzzPattern.SINGLE,
+            ringSpeed = RingSpeed.entries.firstOrNull { it.name == p[RING_SPEED] } ?: RingSpeed.FAST,
             dndQuiet = p[DND_QUIET] ?: true,
             quietHours = p[QUIET_HOURS] ?: false,
             quietStart = p[QUIET_START] ?: 22 * 60,
@@ -156,6 +165,8 @@ class AlertStore(private val context: Context) {
     suspend fun setNotifFavourites(value: Boolean) = context.dataStore.edit { it[NOTIF_FAVOURITES] = value }
     suspend fun setNotifOthers(value: Boolean) = context.dataStore.edit { it[NOTIF_OTHERS] = value }
 
+    suspend fun setBuzzPattern(pattern: BuzzPattern) = context.dataStore.edit { it[BUZZ_PATTERN] = pattern.name }
+    suspend fun setRingSpeed(speed: RingSpeed) = context.dataStore.edit { it[RING_SPEED] = speed.name }
     suspend fun setDndQuiet(value: Boolean) = context.dataStore.edit { it[DND_QUIET] = value }
     suspend fun setQuietHours(value: Boolean) = context.dataStore.edit { it[QUIET_HOURS] = value }
 
@@ -308,6 +319,8 @@ class AlertStore(private val context: Context) {
         val NOTIF_OTHERS = booleanPreferencesKey("notif_others")
         val SENDER_RULES = stringPreferencesKey("sender_rules")
         val APP_RULES = stringPreferencesKey("app_rules")
+        val BUZZ_PATTERN = stringPreferencesKey("buzz_pattern")
+        val RING_SPEED = stringPreferencesKey("ring_speed")
         val DND_QUIET = booleanPreferencesKey("dnd_quiet")
         val QUIET_HOURS = booleanPreferencesKey("quiet_hours")
         val QUIET_START = intPreferencesKey("quiet_start")

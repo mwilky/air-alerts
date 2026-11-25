@@ -1,5 +1,11 @@
 package com.mwilky.airalerts.band
 
+/** What one buzz feels like. */
+enum class BuzzPattern { SINGLE, DOUBLE, LONG }
+
+/** One `POST /settings` body, sent [afterMillis] after the band confirms the write before it. */
+internal class HapticWrite(val afterMillis: Long, val body: ByteArray)
+
 /**
  * Bodies for the Fitbit Air's CoAP `/settings` resource, which holds its buzz strength.
  *
@@ -25,6 +31,26 @@ internal object AirHaptics {
 
     /** `POST /settings` body for one buzz that leaves [current] in place. */
     fun buzz(current: Int): ByteArray = entry(other(current)) + entry(current)
+
+    /**
+     * The writes for one [pattern] that leave [current] in place. Found on the band: each change is
+     * felt at the strength it changes to, so a buzz alternates strong and gentle; changes that land
+     * while the motor still runs blur into a longer buzz, and more than 6 in one write feel no
+     * longer; separate writes need about 500 ms between them to feel apart. Each takes 80–340 ms
+     * to be confirmed and a buzz's first write is the slow one, so a gap timed from the first
+     * write's send came out shorter by a varying amount; timing it from the confirmation doesn't.
+     */
+    fun writes(pattern: BuzzPattern, current: Int): List<HapticWrite> = when (pattern) {
+        BuzzPattern.SINGLE -> listOf(HapticWrite(0, buzz(current)))
+        BuzzPattern.DOUBLE -> listOf(HapticWrite(0, buzz(current)), HapticWrite(DOUBLE_GAP_MS, buzz(current)))
+        BuzzPattern.LONG -> listOf(HapticWrite(0, buzz(current) + buzz(current) + buzz(current)))
+    }
+
+    /**
+     * From the band confirming a repeat's first write to sending its second. The second takes about
+     * 100 ms more to land, so the felt gap is near the 700 ms that felt clearest in testing.
+     */
+    const val DOUBLE_GAP_MS = 600L
 
     fun other(strength: Int) = if (strength == GENTLE) STRONG else GENTLE
 

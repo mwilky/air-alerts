@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.Vibration
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -32,14 +33,19 @@ import com.mwilky.airalerts.QuietHoursRepeat
 import com.mwilky.airalerts.QuietHoursSchedule
 import com.mwilky.airalerts.QuietWindow
 import com.mwilky.airalerts.R
+import com.mwilky.airalerts.RingSpeed
 import com.mwilky.airalerts.RuleConditions
+import com.mwilky.airalerts.band.BuzzPattern
 import com.mwilky.airalerts.localeWeekendDays
 import java.time.DayOfWeek
 import java.time.format.TextStyle
 import java.time.temporal.WeekFields
 
-/** What the Conditions tab can change. */
+/** What the Settings tab can change. */
 data class ConditionsActions(
+    val onChangePattern: (BuzzPattern) -> Unit = {},
+    val onTryPattern: (BuzzPattern) -> Unit = {},
+    val onChangeRingSpeed: (RingSpeed) -> Unit = {},
     val onToggleDnd: (Boolean) -> Unit = {},
     val onToggleQuietHours: (Boolean) -> Unit = {},
     val onChangeWindow: (start: Int, end: Int) -> Unit = { _, _ -> },
@@ -48,13 +54,20 @@ data class ConditionsActions(
     val onChangeDay: (DayOfWeek, QuietWindow) -> Unit = { _, _ -> }
 )
 
-/** The Conditions tab: Do Not Disturb and quiet hours, which every rule follows unless it overrides them. */
+/**
+ * The Settings tab: the buzz pattern, Do Not Disturb and quiet hours, which every rule follows unless
+ * it overrides them.
+ */
 @Composable
 fun ConditionsScreen(viewModel: HomeViewModel = viewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     ConditionsContent(
         settings = state.settings,
+        canTry = rememberEnvironment().canBuzz && !state.busy,
         actions = ConditionsActions(
+            onChangePattern = viewModel::setBuzzPattern,
+            onTryPattern = viewModel::tryPattern,
+            onChangeRingSpeed = viewModel::setRingSpeed,
             onToggleDnd = viewModel::setDndQuiet,
             onToggleQuietHours = viewModel::setQuietHours,
             onChangeWindow = viewModel::setQuietWindow,
@@ -80,7 +93,7 @@ private sealed interface QuietTarget {
 private data class QuietTimeEdit(val target: QuietTarget, val end: Boolean, val pendingStart: Int? = null)
 
 @Composable
-fun ConditionsContent(settings: AlertSettings, actions: ConditionsActions) {
+fun ConditionsContent(settings: AlertSettings, actions: ConditionsActions, canTry: Boolean = true) {
     val locale = LocalConfiguration.current.locales[0]
     val weekendDays = remember(locale) { localeWeekendDays(locale) }
     val firstDay = remember(locale) { WeekFields.of(locale).firstDayOfWeek }
@@ -95,7 +108,7 @@ fun ConditionsContent(settings: AlertSettings, actions: ConditionsActions) {
     }
     var editing by remember { mutableStateOf<QuietTimeEdit?>(null) }
 
-    PageScaffold(title = stringResource(R.string.nav_conditions)) {
+    PageScaffold(title = stringResource(R.string.nav_settings)) {
         ListItem(
             leadingContent = {
                 Icon(Icons.Outlined.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
@@ -109,9 +122,52 @@ fun ConditionsContent(settings: AlertSettings, actions: ConditionsActions) {
             Text(text = stringResource(R.string.conditions_defaults_desc), style = MaterialTheme.typography.bodyMedium)
         }
 
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            RuleGroupHeader(stringResource(R.string.settings_buzz_header))
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ConnectedChoice(
+                    options = BuzzPattern.entries.map { it to patternLabel(it) },
+                    selected = settings.buzzPattern,
+                    onSelect = actions.onChangePattern
+                )
+                AnimatedText(
+                    text = patternDescription(settings.buzzPattern),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            OutlinedButton(
+                onClick = { actions.onTryPattern(settings.buzzPattern) },
+                enabled = canTry,
+                modifier = Modifier.fillMaxWidth(),
+                shapes = ButtonDefaults.shapes()
+            ) {
+                ButtonLabel(Icons.Rounded.Vibration, stringResource(R.string.settings_pattern_try))
+            }
+            ChoiceGroup(
+                title = stringResource(R.string.settings_ring_title),
+                description = stringResource(
+                    when (settings.ringSpeed) {
+                        RingSpeed.FAST -> R.string.ring_gap_desc_fast
+                        RingSpeed.MEDIUM -> R.string.ring_gap_desc_medium
+                        RingSpeed.SLOW -> R.string.ring_gap_desc_slow
+                    }
+                ),
+                options = listOf(
+                    RingSpeed.FAST to stringResource(R.string.ring_gap_fast),
+                    RingSpeed.MEDIUM to stringResource(R.string.ring_gap_medium),
+                    RingSpeed.SLOW to stringResource(R.string.ring_gap_slow)
+                ),
+                selected = settings.ringSpeed,
+                onSelect = actions.onChangeRingSpeed
+            )
+        }
+
         // One item on the page, so the gap above the quiet hours controls collapses with them
         // rather than jumping shut after they have gone.
         Column {
+            RuleGroupHeader(stringResource(R.string.settings_conditions_header))
+            Spacer(Modifier.height(16.dp))
             Column(verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)) {
                 SwitchRow(
                     index = 0,
@@ -250,6 +306,24 @@ fun ConditionsContent(settings: AlertSettings, actions: ConditionsActions) {
 }
 
 @Composable
+internal fun patternLabel(pattern: BuzzPattern) = stringResource(
+    when (pattern) {
+        BuzzPattern.SINGLE -> R.string.pattern_single
+        BuzzPattern.DOUBLE -> R.string.pattern_double
+        BuzzPattern.LONG -> R.string.pattern_long
+    }
+)
+
+@Composable
+internal fun patternDescription(pattern: BuzzPattern) = stringResource(
+    when (pattern) {
+        BuzzPattern.SINGLE -> R.string.pattern_desc_single
+        BuzzPattern.DOUBLE -> R.string.pattern_desc_double
+        BuzzPattern.LONG -> R.string.pattern_desc_long
+    }
+)
+
+@Composable
 private fun QuietWindowGroup(label: String, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -318,8 +392,8 @@ private fun QuietDayRow(
 }
 
 /**
- * A rule's or default row's own Do Not Disturb and quiet hours settings, saved as they change.
- * Staying quiet in quiet hours brings its own times, starting from the Conditions tab's.
+ * A rule's or default row's own Do Not Disturb, quiet hours and buzz pattern settings, saved as they
+ * change. Staying quiet in quiet hours brings its own times, starting from the Settings tab's.
  */
 @Composable
 fun RuleConditionsSheet(
@@ -371,7 +445,7 @@ fun RuleConditionsSheet(
                     options = QuietHoursMode.entries.zip(modes),
                     selected = conditions.quiet,
                     onSelect = { mode ->
-                        // Staying quiet keeps its own times, first taken from the Conditions tab's.
+                        // Staying quiet keeps its own times, first taken from the Settings tab's.
                         onChange(
                             if (mode == QuietHoursMode.SKIP) {
                                 conditions.copy(quiet = mode, quietStart = window.startMinutes, quietEnd = window.endMinutes)
@@ -395,6 +469,15 @@ fun RuleConditionsSheet(
                     )
                 }
             }
+            ChoiceGroup(
+                title = stringResource(R.string.editor_pattern_title),
+                description = conditions.pattern?.let { patternDescription(it) }
+                    ?: stringResource(R.string.editor_pattern_desc_default),
+                options = listOf<Pair<BuzzPattern?, String>>(null to stringResource(R.string.editor_mode_default)) +
+                    BuzzPattern.entries.map { it to patternLabel(it) },
+                selected = conditions.pattern,
+                onSelect = { onChange(conditions.copy(pattern = it)) }
+            )
         }
     }
 
@@ -424,6 +507,7 @@ fun ConditionsScreenPreview() {
     AirAlertsTheme {
         ConditionsContent(
             settings = AlertSettings(
+                buzzPattern = BuzzPattern.DOUBLE,
                 quietHours = true,
                 quietSchedule = QuietHoursSchedule(QuietHoursRepeat.WEEKDAYS_WEEKENDS, QuietWindow(23 * 60 + 30, 9 * 60))
             ),

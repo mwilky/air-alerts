@@ -18,7 +18,7 @@ Everything is free for 30 days. After that the buzzes stop until you unlock it w
 
 **Calls**
 
-* Keeps buzzing, about once a second, while a call rings. Stops as soon as you answer or decline, or the call is missed (a minute at most).
+* Keeps buzzing while a call rings, every 1, 1.5 or 2 seconds, whichever you pick on the Settings tab. Stops as soon as you answer or decline, or the call is missed (a minute at most).
 * Works for normal calls and app calls like WhatsApp. Calls you make don't buzz.
 * Starred contacts always buzz. Separate switches for everyone else in your contacts and for unknown numbers.
 * Caller rules: pick a contact and set them to buzz or stay quiet.
@@ -32,24 +32,26 @@ Everything is free for 30 days. After that the buzzes stop until you unlock it w
 * App rules: any app set to buzz or stay quiet.
 * The order is contact rule, then favourites, then app rule, then a catch-all switch for everything else.
 
-**Conditions**
+**Settings**
 
+* Buzz pattern: Quick (two short taps close together, the one it starts with), Repeat (the quick buzz twice, with a short pause between) or Long (one long pulse, then a short one). A Try this buzz button lets you feel the one you've picked.
+* While a call rings: how often a ringing call buzzes again, every 1, 1.5 or 2 seconds.
 * Do Not Disturb: anything it silences on your phone doesn't buzz your Fitbit Air, and the people and apps it lets through still do. You can turn that off.
 * Quiet hours: nothing buzzes between the times you set. They can run overnight, differ at weekends, or be set day by day.
-* Tap any rule to give it its own answer: always buzz, even in Do Not Disturb or quiet hours, or stay quiet whenever Do Not Disturb is on or during its own hours.
+* Tap any rule to give it its own buzz pattern, so you can tell who it is by feel, and its own answer for Do Not Disturb and quiet hours: always buzz, or stay quiet whenever Do Not Disturb is on or during its own hours.
 
 **Other bits**
 
 * Calls and Notifications each have their own on/off switch. Both start off.
 * A chip on Home shows your Fitbit Air's state and battery. Tap it for when it last buzzed and a Test buzz button.
-* A Buzzes tab with a Test buzz button, each step of the last buzz with how long it took, and a list of recent buzzes and misses with the reason for a miss.
+* A Buzzes tab with a Test buzz button (it uses the Settings tab's pattern), each step of the last buzz with how long it took, and a list of recent buzzes and misses with the reason for a miss.
 * Setup walks you through the permissions and finishes with a test buzz.
 
 **How it works (and the catch)**
 
 * The Fitbit Air has no buzz command for other apps, and it has one secure Bluetooth channel, which Google Health uses.
 * For each buzz I borrow that channel for a few seconds, change the band's buzz-strength setting and change it back (the band buzzes when that setting changes), then hand the channel back to Google Health, which carries on syncing as normal.
-* You feel it as a quick double pulse at your usual strength. Nothing is changed permanently.
+* Each buzz pattern is made from those changes. The setting ends where it started, so nothing is changed permanently.
 * The catch is the delay: a buzz usually lands two to seven seconds after the notification. Fine for calls and messages, not instant.
 * It never scans for devices. It only connects to the Fitbit Air that's already paired.
 

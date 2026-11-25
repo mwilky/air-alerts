@@ -15,9 +15,11 @@ import com.mwilky.airalerts.DefaultRow
 import com.mwilky.airalerts.Licensing
 import com.mwilky.airalerts.QuietHoursRepeat
 import com.mwilky.airalerts.QuietWindow
+import com.mwilky.airalerts.RingSpeed
 import com.mwilky.airalerts.RuleConditions
 import java.time.DayOfWeek
 import com.mwilky.airalerts.band.BandBattery
+import com.mwilky.airalerts.band.BuzzPattern
 import com.mwilky.airalerts.band.BuzzRun
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -64,7 +66,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun testBuzz() = app.buzzer.request(AlertBuzzer.Trigger(AlertKind.TEST))
+    /** Buzzes with the Settings tab's pattern. */
+    fun testBuzz() {
+        viewModelScope.launch { tryPattern(app.store.currentSettings().buzzPattern) }
+    }
+
+    fun tryPattern(pattern: BuzzPattern) = app.buzzer.request(AlertBuzzer.Trigger(AlertKind.TEST, pattern))
 
     fun buy(activity: Activity) = app.licensing.purchase(activity)
 
@@ -77,6 +84,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun setNotifOthers(value: Boolean) = viewModelScope.launch { app.store.setNotifOthers(value) }
 
     fun setRowConditions(row: DefaultRow, conditions: RuleConditions) = viewModelScope.launch { app.store.setRowConditions(row, conditions) }
+    fun setBuzzPattern(pattern: BuzzPattern) = viewModelScope.launch { app.store.setBuzzPattern(pattern) }
+    fun setRingSpeed(speed: RingSpeed) = viewModelScope.launch { app.store.setRingSpeed(speed) }
     fun setDndQuiet(value: Boolean) = viewModelScope.launch { app.store.setDndQuiet(value) }
     fun setQuietHours(value: Boolean) = viewModelScope.launch { app.store.setQuietHours(value) }
     fun setQuietWindow(start: Int, end: Int) = viewModelScope.launch { app.store.setQuietWindow(start, end) }

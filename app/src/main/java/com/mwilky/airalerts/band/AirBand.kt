@@ -13,6 +13,7 @@ import android.util.Log
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -66,7 +67,7 @@ sealed interface BuzzResult {
  * failure, timeout or cancellation) the channel is handed back and our client closed before
  * [buzz] returns. One buzz runs at a time.
  *
- * For a ringing call the session stays open and buzzes again every [RING_GAP_MS] until the call
+ * For a ringing call the session stays open and buzzes again every ring gap until the call
  * stops ringing, so there's one handshake and one hand-back however long it rings.
  */
 class AirBand(private val context: Context) {
@@ -91,11 +92,18 @@ class AirBand(private val context: Context) {
     private val _busy = MutableStateFlow(false)
     val busy: StateFlow<Boolean> = _busy.asStateFlow()
 
-    /** Buzzes once, then again every [RING_GAP_MS] while [repeatWhile] stays true (at most [RING_MAX_MS]). */
-    suspend fun buzz(repeatWhile: StateFlow<Boolean>? = null): BuzzResult = mutex.withLock {
+    /**
+     * Buzzes once with [pattern], then again [ringGapMillis] after each buzz while [repeatWhile]
+     * stays true (at most [RING_MAX_MS]).
+     */
+    suspend fun buzz(
+        pattern: BuzzPattern = BuzzPattern.SINGLE,
+        repeatWhile: StateFlow<Boolean>? = null,
+        ringGapMillis: Long = RING_GAP_MS
+    ): BuzzResult = mutex.withLock {
         _busy.value = true
         try {
-            Session(repeatWhile).run()
+            Session(repeatWhile, pattern = pattern, ringGapMillis = ringGapMillis).run()
         } finally {
             _busy.value = false
         }
@@ -139,7 +147,12 @@ class AirBand(private val context: Context) {
      * One attempt. All link-side state lives on [handler]'s thread. Without [buzz] it only reads the
      * battery, and its steps stay out of the Last buzz list.
      */
-    private inner class Session(private val repeatWhile: StateFlow<Boolean>?, private val buzz: Boolean = true) {
+    private inner class Session(
+        private val repeatWhile: StateFlow<Boolean>?,
+        private val buzz: Boolean = true,
+        private val pattern: BuzzPattern = BuzzPattern.SINGLE,
+        private val ringGapMillis: Long = RING_GAP_MS
+    ) {
         private val start = SystemClock.elapsedRealtime()
         private var stepStart = start
         private var link: AirLink? = null
@@ -189,7 +202,7 @@ class AirBand(private val context: Context) {
                 if (buzz) {
                     begin(BuzzStep.BUZZ)
                     val strength = blocking { readStrength(coap) }
-                    blocking { sendBuzz(coap, strength) }
+                    sendBuzz(coap, strength)
                     buzzedAt = SystemClock.elapsedRealtime()
                     done(BuzzStep.BUZZ)
                     repeatWhile?.let { ringBuzz(coap, strength, it) }
@@ -369,14 +382,22 @@ class AirBand(private val context: Context) {
                 ?: throw BandException(BuzzError.REJECTED, "settings ${read.codeText} ${read.payload.hex()}")
         }
 
-        /** One buzz that leaves [strength] in place. Blocking. */
-        private fun sendBuzz(coap: CoapChannel, strength: Int) {
-            val write = coap.exchange(Coap.POST, AirHaptics.buzz(strength))
-            if (!write.isSuccess) throw BandException(BuzzError.REJECTED, "buzz ${write.codeText}")
+        /**
+         * One buzz in [pattern] that leaves [strength] in place. Each write waits its gap from the band
+         * confirming the one before, so a slow first write doesn't shorten the gap after it.
+         */
+        private suspend fun sendBuzz(coap: CoapChannel, strength: Int) {
+            AirHaptics.writes(pattern, strength).forEachIndexed { i, haptic ->
+                if (haptic.afterMillis > 0) delay(haptic.afterMillis)
+                val sent = SystemClock.elapsedRealtime()
+                val write = blocking { coap.exchange(Coap.POST, haptic.body) }
+                Log.d(TAG, "$pattern write ${i + 1}: ${write.codeText} in ${SystemClock.elapsedRealtime() - sent} ms")
+                if (!write.isSuccess) throw BandException(BuzzError.REJECTED, "buzz ${write.codeText}")
+            }
         }
 
         /**
-         * Buzzes again every [RING_GAP_MS] over the same secure session while [ringing] stays true,
+         * Buzzes again [ringGapMillis] after each buzz over the same secure session while [ringing] stays true,
          * for at most [RING_MAX_MS] from the first buzz. A repeat that fails ends the repeats but not
          * the attempt: the first buzz already landed.
          */
@@ -385,10 +406,10 @@ class AirBand(private val context: Context) {
             var count = 1
             while (SystemClock.elapsedRealtime() < until) {
                 // Wakes early the moment the call is answered, declined or missed.
-                val stopped = withTimeoutOrNull(RING_GAP_MS) { ringing.first { !it } } != null
+                val stopped = withTimeoutOrNull(ringGapMillis) { ringing.first { !it } } != null
                 if (stopped || disconnected.isCompleted) break
                 try {
-                    blocking { sendBuzz(coap, strength) }
+                    sendBuzz(coap, strength)
                     count++
                 } catch (e: BandException) {
                     Log.w(TAG, "repeat buzz refused: ${e.detail.orEmpty()}")
@@ -550,7 +571,7 @@ class AirBand(private val context: Context) {
         private const val COAP_TRIES = 3
         private const val COAP_WAIT_MS = 2_000L
 
-        /** Gap between buzzes while a call rings. 2 s worked on the band but felt too slow. */
+        /** The default gap between buzzes while a call rings; the Settings tab offers slower ones. */
         const val RING_GAP_MS = 1_000L
 
         /** At most one battery-only check this often. */

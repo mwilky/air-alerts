@@ -62,7 +62,7 @@ class MainActivity : ComponentActivity() {
 
 private enum class NavTab(val titleRes: Int, val icon: ImageVector) {
     HOME(R.string.nav_home, Icons.Rounded.Home),
-    CONDITIONS(R.string.nav_conditions, Icons.Rounded.Tune),
+    SETTINGS(R.string.nav_settings, Icons.Rounded.Tune),
     BUZZES(R.string.nav_activity, Icons.Rounded.History)
 }
 
@@ -92,7 +92,7 @@ private fun MainAppNavigation() {
         ) {
             when (selectedTab) {
                 NavTab.HOME -> HomeScreen()
-                NavTab.CONDITIONS -> ConditionsScreen()
+                NavTab.SETTINGS -> ConditionsScreen()
                 NavTab.BUZZES -> BuzzesScreen()
             }
         }
