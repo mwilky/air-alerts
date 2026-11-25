@@ -38,7 +38,6 @@ import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.ToggleButtonShapes
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
@@ -184,26 +183,22 @@ fun ColumnScope.HomeNotifsPage(settings: AlertSettings, actions: HomeActions) {
                 onAdd = actions.onAddSender
             )
             RuleGroupHeader(stringResource(R.string.notifs_app_rules_header, settings.appRules.size))
-            if (settings.appRules.isEmpty()) {
-                EmptyRuleHint(stringResource(R.string.notifs_no_app_rules), Icons.Rounded.Apps)
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)) {
-                    settings.appRules.forEachIndexed { index, rule ->
-                        key(rule.packageName) {
-                            RuleListItem(
-                                index = index,
-                                count = settings.appRules.size,
-                                title = rule.appName,
-                                buzz = rule.buzz,
-                                onBuzzChange = { actions.onSaveAppRule(rule.copy(buzz = it)) },
-                                onDelete = { actions.onDeleteAppRule(rule) },
-                                leading = { AppBadge(rule.packageName) },
-                                conditions = rule.conditions,
-                                onEdit = { actions.onEditApp(rule) }
-                            )
-                        }
-                    }
-                }
+            AnimatedRuleList(
+                rules = settings.appRules,
+                keyOf = { it.packageName },
+                emptyHint = { EmptyRuleHint(stringResource(R.string.notifs_no_app_rules), Icons.Rounded.Apps) }
+            ) { index, count, rule ->
+                RuleListItem(
+                    index = index,
+                    count = count,
+                    title = rule.appName,
+                    buzz = rule.buzz,
+                    onBuzzChange = { actions.onSaveAppRule(rule.copy(buzz = it)) },
+                    onDelete = { actions.onDeleteAppRule(rule) },
+                    leading = { AppBadge(rule.packageName) },
+                    conditions = rule.conditions,
+                    onEdit = { actions.onEditApp(rule) }
+                )
             }
             AddRuleButton(stringResource(R.string.notifs_add_app_btn), Icons.Rounded.Add, actions.onAddApp)
         }
@@ -223,26 +218,22 @@ private fun ContactRuleGroup(
     onAdd: () -> Unit
 ) {
     RuleGroupHeader(header)
-    if (rules.isEmpty()) {
-        EmptyRuleHint(emptyHint, emptyIcon)
-    } else {
-        Column(verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)) {
-            rules.forEachIndexed { index, rule ->
-                key(rule.id) {
-                    RuleListItem(
-                        index = index,
-                        count = rules.size,
-                        title = rule.name,
-                        buzz = rule.buzz,
-                        onBuzzChange = { onSave(rule.copy(buzz = it)) },
-                        onDelete = { onDelete(rule) },
-                        leading = { ContactBadge() },
-                        conditions = rule.conditions,
-                        onEdit = { onEdit(rule) }
-                    )
-                }
-            }
-        }
+    AnimatedRuleList(
+        rules = rules,
+        keyOf = { it.id },
+        emptyHint = { EmptyRuleHint(emptyHint, emptyIcon) }
+    ) { index, count, rule ->
+        RuleListItem(
+            index = index,
+            count = count,
+            title = rule.name,
+            buzz = rule.buzz,
+            onBuzzChange = { onSave(rule.copy(buzz = it)) },
+            onDelete = { onDelete(rule) },
+            leading = { ContactBadge() },
+            conditions = rule.conditions,
+            onEdit = { onEdit(rule) }
+        )
     }
     AddRuleButton(addText, Icons.Rounded.PersonAdd, onAdd)
 }
