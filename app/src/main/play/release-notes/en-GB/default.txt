@@ -1,6 +1,5 @@
 • Buzz patterns: pick Quick, Repeat or Long as your default, with Try this buzz, or give a rule its own
 • Choose how often a ringing call buzzes: every 1, 1.5 or 2 seconds
 • Conditions is now the Settings tab
-• Unlock now tells you when Google Play can't be reached, and the price shows without a restart
 • Smoother motion between tabs, after setup and in the rule list
 • New tinted page headers on every tab
