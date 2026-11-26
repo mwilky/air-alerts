@@ -14,8 +14,8 @@ android {
         applicationId = "com.mwilky.airalerts"
         minSdk = 31
         targetSdk = 37
-        versionCode = 2
-        versionName = "0.9.1"
+        versionCode = 3
+        versionName = "0.9.2"
     }
 
     // The upload key, from ~/.gradle/gradle.properties so no secret lives in the repo. Without

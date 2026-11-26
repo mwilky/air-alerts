@@ -1,5 +1,4 @@
-• Buzz patterns: pick Quick, Repeat or Long as your default, with Try this buzz, or give a rule its own
-• Choose how often a ringing call buzzes: every 1, 1.5 or 2 seconds
-• Conditions is now the Settings tab
-• Smoother motion between tabs, after setup and in the rule list
-• New tinted page headers on every tab
+• The big shape at the top of each setup step now slowly turns and breathes.
+• It bounces when a step's check passes while you're on it: all three checks for your Fitbit Air go green, or notification access is allowed.
+• The Next button gives a small nudge when it switches on.
+• Status cards, in setup and elsewhere, fade from red to their normal colour and pop their tick in when a check passes.
