@@ -2,6 +2,13 @@
 
 package com.mwilky.airalerts.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -10,6 +17,7 @@ import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,17 +40,27 @@ fun StandardDiagnosticCard(
     trailing: (@Composable () -> Unit)? = null,
     bottomAction: (@Composable () -> Unit)? = null
 ) {
-    val accentColor = if (isOk) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-    val containerColor = if (isOk) {
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-    } else {
-        MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f)
-    }
-    val contentColor = if (isOk) {
-        MaterialTheme.colorScheme.onPrimaryContainer
-    } else {
-        MaterialTheme.colorScheme.onErrorContainer
-    }
+    // A check that comes good fades from error to primary as its tick pops in.
+    val colorSpec = MaterialTheme.motionScheme.defaultEffectsSpec<Color>()
+    val accentColor by animateColorAsState(
+        if (isOk) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+        colorSpec,
+        label = "statusAccent"
+    )
+    val containerColor by animateColorAsState(
+        if (isOk) {
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+        } else {
+            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f)
+        },
+        colorSpec,
+        label = "statusContainer"
+    )
+    val contentColor by animateColorAsState(
+        if (isOk) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer,
+        colorSpec,
+        label = "statusContent"
+    )
 
     ExpressiveStatusCard(
         title = title,
@@ -71,6 +89,8 @@ fun ExpressiveStatusCard(
     trailing: (@Composable () -> Unit)? = null,
     bottomAction: (@Composable () -> Unit)? = null
 ) {
+    val iconSpatial = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
+    val iconEffects = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = AirAlertsShapes.CardShape,
@@ -97,12 +117,22 @@ fun ExpressiveStatusCard(
                             .background(accentColor.copy(alpha = 0.18f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            icon,
-                            contentDescription = null,
-                            tint = accentColor,
-                            modifier = Modifier.size(24.dp)
-                        )
+                        // A new icon (a tick, once a check passes) pops in with a little overshoot.
+                        AnimatedContent(
+                            targetState = icon,
+                            transitionSpec = {
+                                (scaleIn(iconSpatial, initialScale = 0.3f) + fadeIn(iconEffects))
+                                    .togetherWith(scaleOut(iconSpatial, targetScale = 0.3f) + fadeOut(iconEffects))
+                            },
+                            label = "statusIcon"
+                        ) { shown ->
+                            Icon(
+                                shown,
+                                contentDescription = null,
+                                tint = accentColor,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
 
                     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
